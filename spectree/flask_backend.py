@@ -131,7 +131,7 @@ class FlaskBackend:
         req_cookies = request.cookies or {}
         request.context = Context(
             query=query.parse_obj(req_query) if query else None,
-            body=body.model.parse_obj(parsed_body) if body else None,
+            body=body.model.parse_obj(parsed_body) if body and body.model else None,
             headers=headers.parse_obj(req_headers) if headers else None,
             cookies=cookies.parse_obj(req_cookies) if cookies else None,
         )

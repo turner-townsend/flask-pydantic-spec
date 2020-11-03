@@ -1,6 +1,7 @@
 import logging
-from collections import namedtuple
+
 from typing import Optional, Type
+from dataclasses import dataclass
 
 from pydantic import ValidationError, BaseModel
 from flask import request, abort, make_response, jsonify, Request as FlaskRequest
@@ -8,7 +9,13 @@ from flask import request, abort, make_response, jsonify, Request as FlaskReques
 from . import Request
 from .page import PAGES
 
-Context = namedtuple("Context", ["query", "body", "headers", "cookies"])
+
+@dataclass
+class Context:
+    query: Optional[Type[BaseModel]]
+    body: Optional[Type[BaseModel]]
+    headers: Optional[Type[BaseModel]]
+    cookies: Optional[Type[BaseModel]]
 
 
 class FlaskBackend:
@@ -123,10 +130,10 @@ class FlaskBackend:
         req_headers = request.headers or {}
         req_cookies = request.cookies or {}
         request.context = Context(
-            query.parse_obj(req_query) if query else None,
-            body.model.parse_obj(parsed_body) if parsed_body else None,
-            headers.parse_obj(req_headers) if headers else None,
-            cookies.parse_obj(req_cookies) if cookies else None,
+            query=query.parse_obj(req_query) if query else None,
+            body=body.model.parse_obj(parsed_body) if body else None,
+            headers=headers.parse_obj(req_headers) if headers else None,
+            cookies=cookies.parse_obj(req_cookies) if cookies else None,
         )
 
     def validate(

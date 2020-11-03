@@ -1,11 +1,14 @@
+from io import BytesIO
 from random import randint
 import pytest
 import json
 from flask import Flask, jsonify, request
+from werkzeug.datastructures import FileStorage
 
 from spectree import SpecTree, Response, Request
+from spectree.types import MultipartFormRequest
 
-from .common import Query, Resp, JSON, Headers, Cookies
+from .common import Query, Resp, JSON, Headers, Cookies, DemoModel
 
 
 def before_handler(req, resp, err, _):
@@ -59,6 +62,14 @@ def group_score(name):
     return jsonify(name=name, score=score)
 
 
+@app.route("/api/file", methods=["POST"])
+@api.validate(body=MultipartFormRequest(), resp=Response(HTTP_200=DemoModel))
+def upload_file():
+    files = request.files
+    assert files is not None
+    return jsonify(uid=1, limit=2, name="success")
+
+
 api.register(app)
 
 
@@ -102,6 +113,14 @@ def test_flask_validate(client):
         content_type="application/json",
     )
     assert resp.json["score"] == sorted(resp.json["score"], reverse=False)
+
+    file = FileStorage(BytesIO(b"abcde"), filename="fileName", name="test.jpg")
+    resp = client.post(
+        "/api/file",
+        data={"fileName": file},
+        content_type="content_type='multipart/form-data'",
+    )
+    assert resp.status_code == 200
 
 
 @pytest.mark.parametrize("client", [200], indirect=True)

@@ -6,7 +6,12 @@ def test_plugin_spec():
     api = flask_api
     assert api.spec["tags"] == [{"name": tag} for tag in ("test", "health", "api")]
 
-    assert get_paths(api.spec) == ["/api/group/{name}", "/api/user/{name}", "/ping"]
+    assert get_paths(api.spec) == [
+        "/api/file",
+        "/api/group/{name}",
+        "/api/user/{name}",
+        "/ping",
+    ]
 
     ping = api.spec["paths"]["/ping"]["get"]
     assert ping["tags"] == ["test", "health"]

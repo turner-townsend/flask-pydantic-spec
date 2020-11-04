@@ -1,6 +1,6 @@
 import pytest
 
-from spectree.utils import (
+from flask_pydantic_spec.utils import (
     parse_comments,
     parse_request,
     parse_params,
@@ -9,13 +9,13 @@ from spectree.utils import (
     parse_code,
     parse_name,
 )
-from spectree.spec import SpecTree
-from spectree.types import Response, Request
+from flask_pydantic_spec.spec import Validator
+from flask_pydantic_spec.types import Response, Request
 
 from .common import DemoModel
 
 
-api = SpecTree()
+api = Validator()
 
 
 def undecorated_func():

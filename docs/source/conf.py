@@ -17,9 +17,9 @@ sys.path.insert(0, os.path.abspath('../../'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'spectree'
-copyright = '2019, Keming Yang'
-author = 'Keming Yang'
+project = 'flask-pydantic-spec'
+copyright = '2020, Chris Gearing, Simon Hayward, Rob Young, Donald Fleming, Saurabh Jha'
+author = 'Chris Gearing, Simon Hayward, Rob Young, Donald Fleming, Saurabh Jha'
 
 
 # -- General configuration ---------------------------------------------------

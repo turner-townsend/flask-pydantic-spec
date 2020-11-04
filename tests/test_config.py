@@ -1,6 +1,6 @@
 import pytest
 
-from spectree.config import Config
+from flask_pydantic_spec.config import Config
 
 
 @pytest.fixture

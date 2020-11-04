@@ -1,5 +1,5 @@
 Utils
 ====================
 
-.. automodule:: spectree.utils
+.. automodule:: flask_pydantic_spec.utils
    :members:

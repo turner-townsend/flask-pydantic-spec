@@ -38,4 +38,4 @@ jobs:
       - name: Check formatting
         run: |
           pip install -r requirements/development.txt
-          black --check tests spectree
+          black --check tests flask_pydantic_spec

@@ -26,7 +26,7 @@ Paste the error message.
 
 **Python Information (please complete the following information):**
  - Python Version [e.g. Python=3.6]
- - Library Version [e.g. spectree=0.1]
+ - Library Version [e.g. flask-pydantic-spec=0.1]
  - Other dependencies [e.g. flask=1.0]
 
 **Additional context**

@@ -1,6 +1,6 @@
 import pytest
 
-from spectree.types import (
+from flask_pydantic_spec.types import (
     DEFAULT_CODE_DESC,
     Response,
     FileResponse,

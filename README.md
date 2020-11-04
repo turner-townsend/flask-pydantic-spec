@@ -1,19 +1,15 @@
-# Spectree
+# Flask Pydantic Spec
 
-
-Yet another library to generate OpenAPI document and validate request & response with Python annotations.
-
+A library to make it easy to add OpenAPI documentation to your Flask app, and validate the requests using [Pydantic](https://github.com/samuelcolvin/pydantic/)
 ## Features
 
 * Less boilerplate code, only annotations, no need for YAML :sparkles:
 * Generate API document with [Redoc UI](https://github.com/Redocly/redoc) or [Swagger UI](https://github.com/swagger-api/swagger-ui) :yum:
 * Validate query, JSON data, response data with [pydantic](https://github.com/samuelcolvin/pydantic/) :wink:
-* Current support:
-  * Flask [demo](#flask)
 
 ## Quick Start
 
-install with pip: `pip install spectree`
+install with pip: `pip install flask-pydantic-spec`
 
 ### Examples
 
@@ -25,10 +21,10 @@ Check the [examples](/examples) folder.
 ### Step by Step
 
 1. Define your data structure used in (query, json, headers, cookies, resp) with `pydantic.BaseModel`
-2. create `spectree.SpecTree` instance with the web framework name you are using, like `api = SpecTree('flask')`
+2. create `flask_pydantic_spec.Validator` instance with the web framework name you are using, like `api = Validator('flask')`
 3. `api.validate` decorate the route with
    * `query`
-   * `json`
+   * `body`
    * `headers`
    * `cookies`
    * `resp`
@@ -54,12 +50,12 @@ Check the [pydantic](https://pydantic-docs.helpmanual.io/usage/schema/) document
 
 > Any config I can change?
 
-Of course. Check the [config](https://spectree.readthedocs.io/en/latest/config.html) document.
+Of course. Check the [config](https://flask-pydantic-spec.readthedocs.io/en/latest/config.html) document.
 
-You can update the config when init the spectree like: 
+You can update the config when init the validator like: 
 
 ```py
-SpecTree('flask', title='Demo API', version='v1.0', path='doc')
+Validator('flask', title='Demo API', version='v1.0', path='doc')
 ```
 
 > What is `Response` and how to use it?
@@ -79,13 +75,10 @@ No need to change anything. Just return what the framework required.
 
 Validation errors are logged with INFO level. Details are passed into `extra`. Check the [falcon example](examples/falcon_demo.py) for details.
 
-> How can I write a customized plugin for another backend framework?
-
-Inherit `spectree.plugins.base.BasePlugin` and implement the functions you need. After that, init like `api = SpecTree(backend=MyCustomizedPlugin)`.
 
 > How can I change the response when there is a validation error? Can I record some metrics?
 
-This library provides `before` and `after` hooks to do these. Check the [doc](https://spectree.readthedocs.io/en/latest) or the [test case](tests/test_plugin_flask.py). You can change the handlers for SpecTree or for a specific endpoint validation.
+This library provides `before` and `after` hooks to do these. Check the [doc](https://flask-pydantic-spec.readthedocs.io/en/latest) or the [test case](tests/test_plugin_flask.py). You can change the handlers for Flask-Pydanic-Spec or for a specific endpoint validation.
 
 ## Demo
 
@@ -96,7 +89,7 @@ Try it with `http post :8000/api/user name=alice age=18`. (if you are using `htt
 ```py
 from flask import Flask, request, jsonify
 from pydantic import BaseModel, Field, constr
-from spectree import SpecTree, Response
+from flask_pydantic_spec import Validator, Response
 
 
 class Profile(BaseModel):
@@ -123,7 +116,7 @@ class Message(BaseModel):
 
 
 app = Flask(__name__)
-api = SpecTree('flask')
+api = Validator('flask')
 
 
 @app.route('/api/user', methods=['POST'])
@@ -148,7 +141,7 @@ if __name__ == "__main__":
 
 > ValidationError: missing field for headers
 
-The HTTP headers' keys in Flask are capitalized, in Falcon are upper cases, in Starlette are lower cases.
+The HTTP headers' keys in Flask are capitalized.
 You can use [`pydantic.root_validators(pre=True)`](https://pydantic-docs.helpmanual.io/usage/validators/#root-validators) to change all the keys into lower cases or upper cases.
 
 > ValidationError: value is not a valid list for query

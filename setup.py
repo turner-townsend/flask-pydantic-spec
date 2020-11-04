@@ -14,14 +14,14 @@ with open(path.join(here, 'requirements/production.txt'), encoding='utf-8') as f
 
 setup(
     name='spectree',
-    version='0.3.6',
-    author='Keming Yang',
-    author_email='kemingy94@gmail.com',
+    version='0.1.0',
+    author='Chris Gearing, Simon Hayward, Rob Young, Donald Fleming, Saurabh Jha',
+    author_email='chris.gearing@turntown.digital',
     description=('generate OpenAPI document and validate request&response '
                  'with Python annotations.'),
     long_description=readme,
     long_description_content_type='text/markdown',
-    url='https://github.com/0b01001001/spectree',
+    url='https://github.com/turner-townsend/flask-pydantic-spec',
     packages=find_packages(exclude=['examples*', 'tests*']),
     package_data={
     },
@@ -37,8 +37,6 @@ setup(
     install_requires=requires,
     extras_require={
         'flask': ['flask'],
-        'falcon': ['falcon'],
-        'starlette': ['starlette', 'requests'],
     },
     zip_safe=False,
     entry_points={

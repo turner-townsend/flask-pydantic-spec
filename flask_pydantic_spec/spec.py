@@ -27,14 +27,14 @@ def _move_schema_reference(reference: str) -> str:
     return reference
 
 
-class SpecTree:
+class Validator:
     """
     Interface
 
-    :param str backend_name: choose from ('flask', 'falcon', 'starlette')
-    :param backend: a backend that inherit `SpecTree.plugins.base.BasePlugin`
+    :param str backend_name: choose from ('flask')
+    :param backend: a backend that inherit `flask_pydantic_spec.FlaskBackend`
     :param app: backend framework application instance (you can also register to it later)
-    :param before: a callback function of the form :meth:`spectree.utils.default_before_handler`
+    :param before: a callback function of the form :meth:`fla.utils.default_before_handler`
         ``func(req, resp, req_validation_error, instance)``
         that will be called after the request validation before the endpoint function
     :param after: a callback function of the form :meth:`spectree.utils.default_after_handler`

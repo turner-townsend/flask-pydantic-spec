@@ -27,6 +27,6 @@ style:
 	flake8 . --count --exit-zero --statistics
 
 format:
-	black tests spectree
+	black tests flask_pydantic_spec
 
 .PHONY: test doc

@@ -6,11 +6,11 @@ from typing import List
 from openapi_spec_validator import validate_v3_spec
 from pydantic import BaseModel, StrictFloat, Field
 
-from spectree import Response
-from spectree.flask_backend import FlaskBackend
-from spectree.types import FileResponse, Request, MultipartFormRequest
-from spectree.spec import SpecTree
-from spectree.config import Config
+from flask_pydantic_spec import Response
+from flask_pydantic_spec.flask_backend import FlaskBackend
+from flask_pydantic_spec.types import FileResponse, Request, MultipartFormRequest
+from flask_pydantic_spec.spec import Validator
+from flask_pydantic_spec.config import Config
 
 from .common import get_paths
 
@@ -40,7 +40,7 @@ def backend_app():
 
 
 def test_spectree_init():
-    spec = SpecTree(path="docs")
+    spec = Validator(path="docs")
     conf = Config()
 
     assert spec.config.TITLE == conf.TITLE
@@ -49,13 +49,13 @@ def test_spectree_init():
 
 @pytest.mark.parametrize("name, app", backend_app())
 def test_register(name, app):
-    api = SpecTree(name)
+    api = Validator(name)
     api.register(app)
 
 
 @pytest.mark.parametrize("name, app", backend_app())
 def test_spec_generate(name, app):
-    api = SpecTree(
+    api = Validator(
         name,
         app=app,
         title=f"{name}",
@@ -70,14 +70,14 @@ def test_spec_generate(name, app):
     assert spec["tags"] == []
 
 
-api = SpecTree(
+api = Validator(
     "flask",
     tags=[{"name": "lone", "description": "a lone api"}],
     validation_error_code=400,
 )
-api_strict = SpecTree("flask", mode="strict")
-api_greedy = SpecTree("flask", mode="greedy")
-api_customize_backend = SpecTree(backend=FlaskBackend)
+api_strict = Validator("flask", mode="strict")
+api_greedy = Validator("flask", mode="greedy")
+api_customize_backend = Validator(backend=FlaskBackend)
 
 
 def create_app():

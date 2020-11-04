@@ -5,8 +5,8 @@ import json
 from flask import Flask, jsonify, request
 from werkzeug.datastructures import FileStorage
 
-from spectree import SpecTree, Response, Request
-from spectree.types import MultipartFormRequest
+from flask_pydantic_spec.types import Response, Request, MultipartFormRequest
+from flask_pydantic_spec import Validator
 
 from .common import Query, Resp, JSON, Headers, Cookies, DemoModel
 
@@ -24,7 +24,7 @@ def api_after_handler(req, resp, err, _):
     resp.headers["X-API"] = "OK"
 
 
-api = SpecTree("flask", before=before_handler, after=after_handler, title="Test API")
+api = Validator("flask", before=before_handler, after=after_handler, title="Test API")
 app = Flask(__name__)
 
 

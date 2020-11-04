@@ -14,10 +14,10 @@ clean:
 	find . -name '*.pyc' -type f -exec rm -rf {} +
 	find . -name '__pycache__' -exec rm -rf {} +
 
-package: clean
+build: clean
 	python setup.py sdist bdist_wheel
 
-publish: package
+publish: build
 	twine upload dist/*
 
 style:

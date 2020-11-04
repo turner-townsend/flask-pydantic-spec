@@ -1,11 +1,16 @@
 # Flask Pydantic Spec
 
-A library to make it easy to add OpenAPI documentation to your Flask app, and validate the requests using [Pydantic](https://github.com/samuelcolvin/pydantic/)
+A library to make it easy to add OpenAPI documentation to your Flask app, and validate the requests using [Pydantic](https://github.com/samuelcolvin/pydantic/).
+
+This library began as a fork of [Spectree](https://github.com/0b01001001/spectree), but as we made changes we thought 
+other people might be interested in our approach.
+
 ## Features
 
 * Less boilerplate code, only annotations, no need for YAML :sparkles:
 * Generate API document with [Redoc UI](https://github.com/Redocly/redoc) or [Swagger UI](https://github.com/swagger-api/swagger-ui) :yum:
 * Validate query, JSON data, response data with [pydantic](https://github.com/samuelcolvin/pydantic/) :wink:
+* Has support for request/response types other than JSON.
 
 ## Quick Start
 
@@ -29,7 +34,7 @@ Check the [examples](/examples) folder.
    * `cookies`
    * `resp`
    * `tags`
-4. access these data with `context(query, json, headers, cookies)` (of course, you can access these from the original place where the framework offered)
+4. access these data with `context(query, body, headers, cookies)` (of course, you can access these from the original place where the framework offered)
    * flask: `request.context`
    * falcon: `req.context`
    * starlette: `request.context`
@@ -120,7 +125,7 @@ api = Validator('flask')
 
 
 @app.route('/api/user', methods=['POST'])
-@api.validate(body=Profile, resp=Response(HTTP_200=Message, HTTP_403=None), tags=['api'])
+@api.validate(body=Request(Profile), resp=Response(HTTP_200=Message, HTTP_403=None), tags=['api'])
 def user_profile():
     """
     verify user profile (summary of this endpoint)

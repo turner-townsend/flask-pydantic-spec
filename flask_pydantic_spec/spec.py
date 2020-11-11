@@ -1,7 +1,8 @@
 from collections import defaultdict
 from functools import wraps
-from typing import Mapping
+from typing import Mapping, Optional, Type, Union, Callable, Iterable, Any, Dict, cast
 
+from flask import Flask, Response as FlaskResponse
 from pydantic import BaseModel
 from inflection import camelize
 from nested_lookup import nested_alter
@@ -9,7 +10,7 @@ from nested_lookup import nested_alter
 from . import Request
 from .config import Config
 from .flask_backend import FlaskBackend
-from .types import MultipartFormRequest
+from .types import RequestBase, ResponseBase
 from .utils import (
     parse_comments,
     parse_request,
@@ -27,7 +28,7 @@ def _move_schema_reference(reference: str) -> str:
     return reference
 
 
-class Validator:
+class FlaskPydanticSpec:
     """
     Interface
 
@@ -45,24 +46,24 @@ class Validator:
 
     def __init__(
         self,
-        backend_name="base",
-        backend=FlaskBackend,
-        app=None,
-        before=default_before_handler,
-        after=default_after_handler,
-        **kwargs,
+        backend_name: str = "base",
+        backend: Type[FlaskBackend] = FlaskBackend,
+        app: Optional[Flask] = None,
+        before: Callable = default_before_handler,
+        after: Callable = default_after_handler,
+        **kwargs: Any,
     ):
-        self.before = before
-        self.after = after
+        self.before: Callable = before
+        self.after: Callable = after
         self.config = Config(**kwargs)
         self.backend_name = backend_name
         self.backend = backend(self)
         # init
-        self.models = {}
+        self.models: Dict[str, Any] = {}
         if app:
             self.register(app)
 
-    def register(self, app):
+    def register(self, app: Flask) -> None:
         """
         register to backend application
 
@@ -73,7 +74,7 @@ class Validator:
         self.backend.register_route(self.app)
 
     @property
-    def spec(self):
+    def spec(self) -> Mapping[str, Any]:
         """
         get the OpenAPI spec
         """
@@ -81,7 +82,7 @@ class Validator:
             self._spec = self._generate_spec()
         return self._spec
 
-    def bypass(self, func):
+    def bypass(self, func: Callable) -> bool:
         """
         bypass rules for routes (mode defined in config)
 
@@ -104,16 +105,16 @@ class Validator:
 
     def validate(
         self,
-        query=None,
-        body=None,
-        headers=None,
-        cookies=None,
-        resp=None,
-        tags=(),
-        deprecated=False,
-        before=None,
-        after=None,
-    ):
+        query: Optional[Type[BaseModel]] = None,
+        body: Optional[Union[RequestBase, Type[BaseModel]]] = None,
+        headers: Optional[Type[BaseModel]] = None,
+        cookies: Optional[Type[BaseModel]] = None,
+        resp: Optional[ResponseBase] = None,
+        tags: Iterable[str] = (),
+        deprecated: bool = False,
+        before: Optional[Callable] = None,
+        after: Optional[Callable] = None,
+    ) -> Callable:
         """
         - validate query, body, headers in request
         - validate response body and status code
@@ -130,14 +131,13 @@ class Validator:
         :param after: :meth:`spectree.utils.default_after_handler` for specific endpoint
         """
 
-        def decorate_validation(func):
-            # for sync framework
+        def decorate_validation(func: Callable) -> Callable:
             @wraps(func)
-            def sync_validate(*args, **kwargs):
+            def sync_validate(*args: Any, **kwargs: Any) -> FlaskResponse:
                 return self.backend.validate(
                     func,
                     query,
-                    body,
+                    body if isinstance(body, RequestBase) else Request(body),
                     headers,
                     cookies,
                     resp,
@@ -147,33 +147,15 @@ class Validator:
                     **kwargs,
                 )
 
-            # for async framework
-            @wraps(func)
-            async def async_validate(*args, **kwargs):
-                return await self.backend.validate(
-                    func,
-                    query,
-                    body,
-                    headers,
-                    cookies,
-                    resp,
-                    before or self.before,
-                    after or self.after,
-                    *args,
-                    **kwargs,
-                )
-
-            validation = (
-                async_validate if self.backend_name == "starlette" else sync_validate
-            )
+            validation = sync_validate
 
             # register
             for name, model in zip(
                 ("query", "body", "headers", "cookies"), (query, body, headers, cookies)
             ):
                 if model is not None:
-                    if isinstance(model, (Request, MultipartFormRequest)):
-                        _model = model.model
+                    if hasattr(model, "model"):
+                        _model = getattr(model, "model", None)
                     else:
                         _model = model
                     if _model:
@@ -184,29 +166,32 @@ class Validator:
 
             if resp:
                 for model in resp.models:
-                    self.models[model.__name__] = self._get_open_api_schema(
-                        model.schema()
-                    )
-                validation.resp = resp
+                    if model:
+                        assert not isinstance(model, RequestBase)
+                        self.models[model.__name__] = self._get_open_api_schema(
+                            model.schema()
+                        )
+                setattr(validation, "resp", resp)
 
             if tags:
-                validation.tags = tags
+                setattr(validation, "tags", tags)
 
             if deprecated:
-                validation.deprecated = True
+                setattr(validation, "deprecated", True)
 
             # register decorator
-            validation._decorator = self
+            setattr(validation, "_decorator", self)
             return validation
 
         return decorate_validation
 
-    def _generate_spec(self):
+    def _generate_spec(self) -> Mapping[str, Any]:
         """
         generate OpenAPI spec according to routes and decorators
         """
         tag_lookup = {tag["name"]: tag for tag in self.config.TAGS}
-        routes, tags = {}, {}
+        routes: Dict[str, Any] = {}
+        tags: Dict[str, Any] = {}
         for route in self.backend.find_routes():
             path, parameters = self.backend.parse_path(route)
             routes[path] = routes.get(path, {})
@@ -253,7 +238,7 @@ class Validator:
         }
         return spec
 
-    def _validate_property(self, property: Mapping) -> Mapping:
+    def _validate_property(self, property: Mapping[str, Any]) -> Dict[str, Any]:
         allowed_fields = {
             "title",
             "multipleOf",
@@ -292,7 +277,7 @@ class Validator:
             "deprecated",
             "$ref",
         }
-        result = defaultdict(dict)
+        result: Dict[str, Any] = defaultdict(dict)
 
         for key, value in property.items():
             for prop, val in value.items():
@@ -301,7 +286,7 @@ class Validator:
 
         return result
 
-    def _get_open_api_schema(self, schema: Mapping) -> Mapping:
+    def _get_open_api_schema(self, schema: Mapping[str, Any]) -> Mapping[str, Any]:
         """
         Convert a Pydantic model into an OpenAPI compliant schema object.
         """
@@ -313,11 +298,11 @@ class Validator:
                 result[key] = value
         return result
 
-    def _get_model_definitions(self):
+    def _get_model_definitions(self) -> Dict[str, Any]:
         """
         handle nested models
         """
-        definitions = {}
+        definitions: Dict[str, Any] = {}
         for model, schema in self.models.items():
             if model not in definitions.keys():
                 definitions[model] = schema
@@ -326,9 +311,9 @@ class Validator:
                     definitions[key] = self._get_open_api_schema(value)
                 del schema["definitions"]
 
-        return nested_alter(definitions, "$ref", _move_schema_reference)
+        return cast(Dict, nested_alter(definitions, "$ref", _move_schema_reference))
 
-    def _parse_request_body(self, request_body):
+    def _parse_request_body(self, request_body: Mapping[str, Any]) -> Mapping[str, Any]:
         content_types = list(request_body["content"].keys())
         if len(content_types) != 1:
             raise RuntimeError(

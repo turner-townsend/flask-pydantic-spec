@@ -26,6 +26,9 @@ style:
 	# exit-zero treats all errors as warnings
 	flake8 . --count --exit-zero --statistics
 
+lint:
+	mypy flask_pydantic_spec
+
 format:
 	black tests flask_pydantic_spec
 

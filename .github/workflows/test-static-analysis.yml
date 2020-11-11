@@ -39,3 +39,4 @@ jobs:
         run: |
           pip install -r requirements/development.txt
           black --check tests flask_pydantic_spec
+          mypy flask_pydantic_spec

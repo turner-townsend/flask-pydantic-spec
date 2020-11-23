@@ -1,30 +1,40 @@
 import logging
 
-from typing import Optional, Type
+from typing import Optional, Mapping, Callable, Any, Tuple, List, Type, Union
 from dataclasses import dataclass
 
 from pydantic import ValidationError, BaseModel
-from flask import request, abort, make_response, jsonify, Request as FlaskRequest
+from flask import (
+    request,
+    abort,
+    make_response,
+    jsonify,
+    Request as FlaskRequest,
+    Flask,
+    Response as FlaskResponse,
+)
+from werkzeug.datastructures import EnvironHeaders
 
-from . import Request
+from .config import Config
 from .page import PAGES
+from .types import ResponseBase, RequestBase, Request
 
 
 @dataclass
 class Context:
-    query: Optional[Type[BaseModel]]
-    body: Optional[Type[BaseModel]]
-    headers: Optional[Type[BaseModel]]
-    cookies: Optional[Type[BaseModel]]
+    query: Optional[BaseModel]
+    body: Optional[BaseModel]
+    headers: Optional[BaseModel]
+    cookies: Optional[BaseModel]
 
 
 class FlaskBackend:
-    def __init__(self, spectree):
-        self.spectree = spectree
-        self.config = spectree.config
-        self.logger = logging.getLogger(__name__)
+    def __init__(self, validator: Any) -> None:
+        self.validator = validator
+        self.config: Config = validator.config
+        self.logger: logging.Logger = logging.getLogger(__name__)
 
-    def find_routes(self):
+    def find_routes(self) -> Any:
         for rule in self.app.url_map.iter_rules():
             if any(
                 str(rule).startswith(path)
@@ -33,23 +43,23 @@ class FlaskBackend:
                 continue
             yield rule
 
-    def bypass(self, func, method):
+    def bypass(self, func: Callable, method: str) -> bool:
         if method in ["HEAD", "OPTIONS"]:
             return True
         return False
 
-    def parse_func(self, route):
+    def parse_func(self, route: Any) -> Any:
         func = self.app.view_functions[route.endpoint]
         for method in route.methods:
             yield method, func
 
-    def parse_path(self, route):
+    def parse_path(self, route: Any) -> Tuple[str, List[Any]]:
         from werkzeug.routing import parse_rule, parse_converter_args
 
         subs = []
         parameters = []
 
-        for converter, arguments, variable in parse_rule(str(route)):
+        for converter, arguments, variable in parse_rule(str(route)):  # type: ignore
             if converter is None:
                 subs.append(variable)
                 continue
@@ -58,7 +68,7 @@ class FlaskBackend:
             args, kwargs = [], {}
 
             if arguments:
-                args, kwargs = parse_converter_args(arguments)
+                args, kwargs = parse_converter_args(arguments)  # type: ignore
 
             schema = None
             if converter == "any":
@@ -118,27 +128,43 @@ class FlaskBackend:
         self,
         request: FlaskRequest,
         query: Optional[Type[BaseModel]],
-        body: Optional[Request],
+        body: Optional[RequestBase],
         headers: Optional[Type[BaseModel]],
         cookies: Optional[Type[BaseModel]],
-    ):
-        req_query = request.args or {}
+    ) -> None:
+        req_query: Optional[Mapping[str, str]] = request.args or None
         if request.content_type == "application/json":
             parsed_body = request.get_json() or {}
         else:
             parsed_body = request.get_data() or {}
-        req_headers = request.headers or {}
-        req_cookies = request.cookies or {}
-        request.context = Context(
-            query=query.parse_obj(req_query) if query else None,
-            body=body.model.parse_obj(parsed_body) if body and body.model else None,
-            headers=headers.parse_obj(req_headers) if headers else None,
-            cookies=cookies.parse_obj(req_cookies) if cookies else None,
+        req_headers: Optional[EnvironHeaders] = request.headers or None
+        req_cookies: Optional[Mapping[str, str]] = request.cookies or None
+        setattr(
+            request,
+            "context",
+            Context(
+                query=query.parse_obj(req_query) if query else None,
+                body=getattr(body, "model").parse_obj(parsed_body)
+                if body and getattr(body, "model")
+                else None,
+                headers=headers.parse_obj(req_headers) if headers else None,
+                cookies=cookies.parse_obj(req_cookies) if cookies else None,
+            ),
         )
 
     def validate(
-        self, func, query, body, headers, cookies, resp, before, after, *args, **kwargs
-    ):
+        self,
+        func: Callable,
+        query: Optional[Type[BaseModel]],
+        body: Optional[RequestBase],
+        headers: Optional[Type[BaseModel]],
+        cookies: Optional[Type[BaseModel]],
+        resp: Optional[ResponseBase],
+        before: Callable,
+        after: Callable,
+        *args: List[Any],
+        **kwargs: Mapping[str, Any],
+    ) -> FlaskResponse:
         response, req_validation_error, resp_validation_error = None, None, None
         try:
             self.request_validation(request, query, body, headers, cookies)
@@ -150,11 +176,11 @@ class FlaskBackend:
 
         before(request, response, req_validation_error, None)
         if req_validation_error:
-            abort(response)
+            abort(response)  # type: ignore
 
         response = make_response(func(*args, **kwargs))
 
-        if resp and resp.has_model() and resp.validate:
+        if resp and resp.has_model() and getattr(resp, "validate"):
             model = resp.find_model(response.status_code)
             if model:
                 try:
@@ -169,14 +195,14 @@ class FlaskBackend:
 
         return response
 
-    def register_route(self, app):
+    def register_route(self, app: Flask) -> None:
         self.app = app
         from flask import jsonify
 
         self.app.add_url_rule(
             self.config.spec_url,
             "openapi",
-            lambda: jsonify(self.spectree.spec),
+            lambda: jsonify(self.validator.spec),
         )
 
         for ui in PAGES:

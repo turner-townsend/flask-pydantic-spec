@@ -6,16 +6,15 @@ from flask_pydantic_spec.utils import (
     parse_params,
     parse_resp,
     has_model,
-    parse_code,
     parse_name,
 )
-from flask_pydantic_spec.spec import Validator
-from flask_pydantic_spec.types import Response, Request
+from flask_pydantic_spec.spec import FlaskPydanticSpec
+from flask_pydantic_spec.types import Response, Request, _parse_code
 
 from .common import DemoModel
 
 
-api = Validator()
+api = FlaskPydanticSpec()
 
 
 def undecorated_func():
@@ -54,10 +53,10 @@ def test_comments():
 
 def test_parse_code():
     with pytest.raises(TypeError):
-        assert parse_code(200) == 200
+        assert _parse_code(200) == 200
 
-    assert parse_code("200") is None
-    assert parse_code("HTTP_404") == "404"
+    assert _parse_code("200") is None
+    assert _parse_code("HTTP_404") == "404"
 
 
 def test_parse_name():

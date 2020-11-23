@@ -1,5 +1,3 @@
-import json
-
 import pytest
 from flask import Flask
 from typing import List
@@ -9,7 +7,7 @@ from pydantic import BaseModel, StrictFloat, Field
 from flask_pydantic_spec import Response
 from flask_pydantic_spec.flask_backend import FlaskBackend
 from flask_pydantic_spec.types import FileResponse, Request, MultipartFormRequest
-from flask_pydantic_spec.spec import Validator
+from flask_pydantic_spec import FlaskPydanticSpec
 from flask_pydantic_spec.config import Config
 
 from .common import get_paths
@@ -40,7 +38,7 @@ def backend_app():
 
 
 def test_spectree_init():
-    spec = Validator(path="docs")
+    spec = FlaskPydanticSpec(path="docs")
     conf = Config()
 
     assert spec.config.TITLE == conf.TITLE
@@ -49,13 +47,13 @@ def test_spectree_init():
 
 @pytest.mark.parametrize("name, app", backend_app())
 def test_register(name, app):
-    api = Validator(name)
+    api = FlaskPydanticSpec(name)
     api.register(app)
 
 
 @pytest.mark.parametrize("name, app", backend_app())
 def test_spec_generate(name, app):
-    api = Validator(
+    api = FlaskPydanticSpec(
         name,
         app=app,
         title=f"{name}",
@@ -70,14 +68,14 @@ def test_spec_generate(name, app):
     assert spec["tags"] == []
 
 
-api = Validator(
+api = FlaskPydanticSpec(
     "flask",
     tags=[{"name": "lone", "description": "a lone api"}],
     validation_error_code=400,
 )
-api_strict = Validator("flask", mode="strict")
-api_greedy = Validator("flask", mode="greedy")
-api_customize_backend = Validator(backend=FlaskBackend)
+api_strict = FlaskPydanticSpec("flask", mode="strict")
+api_greedy = FlaskPydanticSpec("flask", mode="greedy")
+api_customize_backend = FlaskPydanticSpec(backend=FlaskBackend)
 
 
 def create_app():

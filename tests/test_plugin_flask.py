@@ -5,8 +5,8 @@ import json
 from flask import Flask, jsonify, request
 from werkzeug.datastructures import FileStorage
 
-from flask_pydantic_spec.types import Response, Request, MultipartFormRequest
-from flask_pydantic_spec import Validator
+from flask_pydantic_spec.types import Response, MultipartFormRequest
+from flask_pydantic_spec import FlaskPydanticSpec
 
 from .common import Query, Resp, JSON, Headers, Cookies, DemoModel
 
@@ -24,7 +24,9 @@ def api_after_handler(req, resp, err, _):
     resp.headers["X-API"] = "OK"
 
 
-api = Validator("flask", before=before_handler, after=after_handler, title="Test API")
+api = FlaskPydanticSpec(
+    "flask", before=before_handler, after=after_handler, title="Test API"
+)
 app = Flask(__name__)
 
 
@@ -39,7 +41,7 @@ def ping():
 @app.route("/api/user/<name>", methods=["POST"])
 @api.validate(
     query=Query,
-    body=Request(JSON),
+    body=JSON,
     cookies=Cookies,
     resp=Response(HTTP_200=Resp, HTTP_401=None),
     tags=["api", "test"],

@@ -1,18 +1,17 @@
-import re
 import inspect
 import logging
 
-# parse HTTP status code to get the code
-from typing import Callable, Mapping, Any
+from typing import Callable, Mapping, Any, Tuple, Optional, List, Dict
 
+from flask import Request as FlaskRequest
 from pydantic import BaseModel
 
-HTTP_CODE = re.compile(r"^HTTP_(?P<code>\d{3})$")
+from .types import Response, RequestBase, Request
 
 logger = logging.getLogger(__name__)
 
 
-def parse_comments(func):
+def parse_comments(func: Callable) -> Tuple[Optional[str], Optional[str]]:
     """
     parse function comments
 
@@ -22,28 +21,39 @@ def parse_comments(func):
     doc = inspect.getdoc(func)
     if doc is None:
         return None, None
-    doc = doc.split("\n", 1)
-    if len(doc) == 1:
-        return doc[0], None
-    return doc[0], doc[1].strip()
+    docs = doc.split("\n", 1)
+    if len(docs) == 1:
+        return docs[0], None
+    return docs[0], docs[1].strip()
 
 
-def parse_request(func: Callable):
+def parse_request(func: Callable) -> Mapping[str, Any]:
     """
     Generate spec from body parameter on the view function validation decorator
     """
-    data = {}
     if hasattr(func, "body"):
-        return func.body.generate_spec()
-    return data
+        request_body = getattr(func, "body", None)
+        if isinstance(request_body, RequestBase):
+            result: Mapping[str, Any] = request_body.generate_spec()
+        elif issubclass(request_body, BaseModel):
+            result = Request(request_body).generate_spec()
+        else:
+            result = {}
+        return result
+    return {}
 
 
-def parse_params(func, params, models):
+def parse_params(
+    func: Callable,
+    params: List[Mapping[str, Any]],
+    models: Mapping[str, Any],
+) -> List[Mapping[str, Any]]:
     """
     get spec for (query, headers, cookies)
     """
     if hasattr(func, "query"):
-        query = models[func.query.__name__]
+        model_name = getattr(func, "query").__name__
+        query = models[model_name]
         for name, schema in query["properties"].items():
             params.append(
                 {
@@ -55,7 +65,8 @@ def parse_params(func, params, models):
             )
 
     if hasattr(func, "headers"):
-        headers = models[func.headers.__name__]
+        model_name = getattr(func, "headers").__name__
+        headers = models[model_name]
         for name, schema in headers["properties"].items():
             params.append(
                 {
@@ -67,7 +78,8 @@ def parse_params(func, params, models):
             )
 
     if hasattr(func, "cookies"):
-        cookies = models[func.cookies.__name__]
+        model_name = getattr(func, "cookies").__name__
+        cookies = models[model_name]
         for name, schema in cookies["properties"].items():
             params.append(
                 {
@@ -81,7 +93,7 @@ def parse_params(func, params, models):
     return params
 
 
-def parse_resp(func, code: int):
+def parse_resp(func: Callable, code: int) -> Mapping[str, Mapping[str, Any]]:
     """
     get the response spec
 
@@ -89,9 +101,9 @@ def parse_resp(func, code: int):
     a ``Validation Error`` will be append to the response spec. Since
     this may be triggered in the validation step.
     """
-    responses = {}
+    responses: Dict[str, Any] = {}
     if hasattr(func, "resp"):
-        responses = func.resp.generate_spec()
+        responses = getattr(func, "resp", {}).generate_spec()
 
     if str(code) not in responses and has_model(func):
         responses[str(code)] = {"description": "Validation Error"}
@@ -99,32 +111,20 @@ def parse_resp(func, code: int):
     return responses
 
 
-def has_model(func):
+def has_model(func: Callable) -> bool:
     """
     return True if this function have ``pydantic.BaseModel``
     """
     if any(hasattr(func, x) for x in ("query", "json", "headers")):
         return True
 
-    if hasattr(func, "resp") and func.resp.has_model():
+    if hasattr(func, "resp") and getattr(func, "resp").has_model():
         return True
 
     return False
 
 
-def parse_code(http_code):
-    """
-    get the code of this HTTP status
-
-    :param str http_code: format like ``HTTP_200``
-    """
-    match = HTTP_CODE.match(http_code)
-    if not match:
-        return None
-    return match.group("code")
-
-
-def parse_name(func):
+def parse_name(func: Callable) -> str:
     """
     the func can be
 
@@ -135,7 +135,9 @@ def parse_name(func):
     return func.__name__
 
 
-def default_before_handler(req, resp, req_validation_error, instance):
+def default_before_handler(
+    req: Request, resp: Response, req_validation_error: Any, instance: BaseModel
+) -> None:
     """
     default handler called before the endpoint function after the request validation
 
@@ -155,7 +157,9 @@ def default_before_handler(req, resp, req_validation_error, instance):
         )
 
 
-def default_after_handler(req, resp, resp_validation_error, instance):
+def default_after_handler(
+    req: Request, resp: Response, resp_validation_error: Any, instance: BaseModel
+) -> None:
     """
     default handler called after the response validation
 

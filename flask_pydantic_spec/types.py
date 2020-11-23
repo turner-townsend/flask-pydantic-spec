@@ -1,11 +1,29 @@
-from typing import Optional, Type
+import re
+from typing import Optional, Type, Iterable, Mapping, Any, Dict
 
 from pydantic import BaseModel
 
-from .utils import parse_code
+
+class ResponseBase:
+    """
+    Base Class for Response Types
+    """
+
+    def has_model(self) -> bool:
+        ...
+
+    def find_model(self, code: int) -> Optional[Type[BaseModel]]:
+        ...
+
+    @property
+    def models(self) -> Iterable[Type[BaseModel]]:
+        ...
+
+    def generate_spec(self) -> Mapping[str, Any]:
+        ...
 
 
-class Response:
+class Response(ResponseBase):
     """
     response object
 
@@ -14,7 +32,7 @@ class Response:
     You can also pass `validate` into the kwargs to disable output validation of this model
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
 
         self.validate = True
         self.codes = []
@@ -22,9 +40,10 @@ class Response:
             assert item in DEFAULT_CODE_DESC, "invalid HTTP status code"
             self.codes.append(item)
 
-        self.code_models = {}
+        self.code_models: Dict[str, Type[BaseModel]] = {}
         for key, value in kwargs.items():
             if key.lower() == "validate":
+                assert isinstance(value, bool)
                 self.validate = value
             else:
                 assert key in DEFAULT_CODE_DESC, "invalid HTTP status code"
@@ -34,60 +53,67 @@ class Response:
                 else:
                     self.codes.append(key)
 
-    def has_model(self):
+    def has_model(self) -> bool:
         """
         :returns: boolean -- does this response has models or not
         """
         return True if self.code_models else False
 
-    def find_model(self, code):
+    def find_model(self, code: int) -> Optional[Type[BaseModel]]:
         """
         :param code: ``r'\\d{3}'``
         """
         return self.code_models.get(f"HTTP_{code}")
 
     @property
-    def models(self):
+    def models(self) -> Iterable[Type[BaseModel]]:
         """
         :returns:  dict_values -- all the models in this response
         """
         return self.code_models.values()
 
-    def generate_spec(self):
+    def generate_spec(self) -> Dict[str, Any]:
         """
         generate the spec for responses
 
         :returns: JSON
         """
-        responses = {}
+        responses: Dict[str, Any] = {}
         for code in self.codes:
-            responses[parse_code(code)] = {"description": DEFAULT_CODE_DESC[code]}
+            response_code = _parse_code(code)
+            if response_code:
+                responses[response_code] = {"description": DEFAULT_CODE_DESC[code]}
 
         for code, model in self.code_models.items():
-            responses[parse_code(code)] = {
-                "description": DEFAULT_CODE_DESC[code],
-                "content": {
-                    "application/json": {
-                        "schema": {"$ref": f"#/components/schemas/{model.__name__}"}
-                    }
-                },
-            }
+            response_code = _parse_code(code)
+            if response_code:
+                responses[response_code] = {
+                    "description": DEFAULT_CODE_DESC[code],
+                    "content": {
+                        "application/json": {
+                            "schema": {"$ref": f"#/components/schemas/{model.__name__}"}
+                        }
+                    },
+                }
 
         return responses
 
 
-class FileResponse:
+class FileResponse(ResponseBase):
     def __init__(self, content_type: str = "application/octet-stream"):
         self.content_type = content_type
-        self.models = []  # cannot provide models to a File response
 
-    def has_model(self):
+    def has_model(self) -> bool:
         """
         File response cannot have a model
         """
         return False
 
-    def generate_spec(self):
+    @property
+    def models(self) -> Iterable[Type[BaseModel]]:
+        return []
+
+    def generate_spec(self) -> Mapping[str, Any]:
         responses = {
             "200": {
                 "description": DEFAULT_CODE_DESC["HTTP_200"],
@@ -103,21 +129,29 @@ class FileResponse:
         return responses
 
 
-class Request:
+class RequestBase:
+    def has_model(self) -> bool:
+        ...
+
+    def generate_spec(self) -> Mapping[str, Any]:
+        ...
+
+
+class Request(RequestBase):
     def __init__(
         self,
         model: Optional[Type[BaseModel]] = None,
         content_type: str = "application/json",
         encoding: str = "binary",
-    ):
+    ) -> None:
         self.content_type = content_type
         self.model = model
         self.encoding = encoding
 
-    def has_model(self):
+    def has_model(self) -> bool:
         return self.model is not None
 
-    def generate_spec(self):
+    def generate_spec(self) -> Mapping[str, Any]:
         if self.content_type == "application/octet-stream":
             return {
                 "content": {
@@ -127,6 +161,7 @@ class Request:
                 }
             }
         else:
+            assert self.model is not None
             return {
                 "content": {
                     self.content_type: {
@@ -138,7 +173,7 @@ class Request:
             }
 
 
-class MultipartFormRequest:
+class MultipartFormRequest(RequestBase):
     def __init__(
         self,
         model: Optional[Type[BaseModel]] = None,
@@ -150,10 +185,10 @@ class MultipartFormRequest:
         self.file_name = file_name
         self.encoding = encoding
 
-    def has_model(self):
+    def has_model(self) -> bool:
         return self.model is not None
 
-    def generate_spec(self):
+    def generate_spec(self) -> Mapping[str, Any]:
         model_spec = self.model.schema() if self.model else None
         if model_spec:
             additional_properties = model_spec["properties"]
@@ -176,6 +211,21 @@ class MultipartFormRequest:
                 }
             }
         }
+
+
+HTTP_CODE = re.compile(r"^HTTP_(?P<code>\d{3})$")
+
+
+def _parse_code(http_code: str) -> Optional[str]:
+    """
+    get the code of this HTTP status
+
+    :param str http_code: format like ``HTTP_200``
+    """
+    match = HTTP_CODE.match(http_code)
+    if not match:
+        return None
+    return match.group("code")
 
 
 # according to https://tools.ietf.org/html/rfc2616#section-10

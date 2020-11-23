@@ -1,4 +1,5 @@
 import logging
+from typing import Set, Optional, Dict, Any, Mapping, List
 
 
 class Config:
@@ -14,32 +15,32 @@ class Config:
     :ivar VALIDATION_ERROR_CODE: code for validation error responses
     """
 
-    def __init__(self, **kwargs):
-        self.PATH = "apidoc"
-        self.FILENAME = "openapi.json"
-        self.OPENAPI_VERSION = "3.0.3"
-        self.UI = "redoc"
-        self._SUPPORT_UI = {"redoc", "swagger"}
-        self.MODE = "normal"
-        self._SUPPORT_MODE = {"normal", "strict", "greedy"}
-        self.VALIDATION_ERROR_CODE = 422
+    def __init__(self, **kwargs: Dict[str, Any]) -> None:
+        self.PATH: str = "apidoc"
+        self.FILENAME: str = "openapi.json"
+        self.OPENAPI_VERSION: str = "3.0.3"
+        self.UI: str = "redoc"
+        self._SUPPORT_UI: Set[str] = {"redoc", "swagger"}
+        self.MODE: str = "normal"
+        self._SUPPORT_MODE: Set[str] = {"normal", "strict", "greedy"}
+        self.VALIDATION_ERROR_CODE: int = 422
 
-        self.TITLE = "Service API Document"
-        self.VERSION = "0.1"
-        self.DOMAIN = None
+        self.TITLE: str = "Service API Document"
+        self.VERSION: str = "0.1"
+        self.DOMAIN: Optional[str] = None
 
-        self.INFO = {}
-        self.TAGS = []
+        self.INFO: Dict[str, str] = {}
+        self.TAGS: List[Mapping[str, str]] = []
 
         self.logger = logging.getLogger(__name__)
 
         self.update(**kwargs)
 
     @property
-    def spec_url(self):
+    def spec_url(self) -> str:
         return f"/{self.PATH}/{self.FILENAME}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         display = "\n{:=^80}\n".format(self.__class__.__name__)
         for k, v in vars(self).items():
             if not k.startswith("__"):
@@ -47,7 +48,7 @@ class Config:
 
         return display + "=" * 80
 
-    def update(self, **kwargs):
+    def update(self, **kwargs: Mapping[str, Any]) -> None:
         """
         update config from key-value pairs
 

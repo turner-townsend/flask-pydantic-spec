@@ -1,5 +1,5 @@
 from enum import IntEnum, Enum
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, root_validator
 
@@ -10,7 +10,7 @@ class Order(IntEnum):
 
 
 class Query(BaseModel):
-    order: Order
+    order: Optional[Order]
 
 
 class JSON(BaseModel):

@@ -49,7 +49,9 @@ def ping():
 )
 def user_score(name):
     score = [randint(0, request.context.body.limit) for _ in range(5)]
-    score.sort(reverse=request.context.query.order)
+    score.sort(
+        reverse=request.context.query.order if request.context.query.order else False
+    )
     assert request.context.cookies.pub == "abcdefg"
     assert request.cookies["pub"] == "abcdefg"
     return jsonify(name=request.context.body.name, score=score)
@@ -111,6 +113,13 @@ def test_flask_validate(client):
 
     resp = client.post(
         "/api/user/flask?order=0",
+        data=json.dumps(dict(name="flask", limit=10)),
+        content_type="application/json",
+    )
+    assert resp.json["score"] == sorted(resp.json["score"], reverse=False)
+
+    resp = client.post(
+        "/api/user/flask",
         data=json.dumps(dict(name="flask", limit=10)),
         content_type="application/json",
     )

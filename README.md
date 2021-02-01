@@ -34,10 +34,8 @@ Check the [examples](/examples) folder.
    * `cookies`
    * `resp`
    * `tags`
-4. access these data with `context(query, body, headers, cookies)` (of course, you can access these from the original place where the framework offered)
+4. access this data with `context(query, body, headers, cookies)` (of course, you can access these from the original place where the framework offered)
    * flask: `request.context`
-   * falcon: `req.context`
-   * starlette: `request.context`
 5. register to the web application `api.register(app)`
 6. check the document at URL location `/apidoc/redoc` or `/apidoc/swagger`
 
@@ -51,23 +49,25 @@ Just add docs to the endpoint function. The 1st line is the summary, and the res
 
 > How to add description to parameters?
 
-Check the [pydantic](https://pydantic-docs.helpmanual.io/usage/schema/) document about description in `Field`.
+Check the [pydantic](https://pydantic-docs.helpmanual.io/usage/schema/) docs about description in `Field`.
 
 > Any config I can change?
 
 Of course. Check the [config](https://flask-pydantic-spec.readthedocs.io/en/latest/config.html) document.
 
-You can update the config when init the validator like: 
+You can update the config when you init the validator like: 
 
 ```py
-Validator('flask', title='Demo API', version='v1.0', path='doc')
+from flask_pydantic_spec import FlaskPydanticSpec
+FlaskPydanticSpec("flask", title="Demo API", version="v1.0", path="doc")
 ```
 
-> What is `Response` and how to use it?
+> What is a `Response` and how to use it?
 
 To build a response for the endpoint, you need to declare the status code with format `HTTP_{code}` and corresponding data (optional).
 
 ```py
+from flask_pydantic_spec import Response
 Response(HTTP_200=None, HTTP_403=ForbidModel)
 Response('HTTP_200') # equals to Response(HTTP_200=None)
 ```
@@ -78,12 +78,11 @@ No need to change anything. Just return what the framework required.
 
 > How to logging when the validation failed?
 
-Validation errors are logged with INFO level. Details are passed into `extra`. Check the [falcon example](examples/falcon_demo.py) for details.
-
+Validation errors are logged with INFO level. Details are passed into `extra`.
 
 > How can I change the response when there is a validation error? Can I record some metrics?
 
-This library provides `before` and `after` hooks to do these. Check the [doc](https://flask-pydantic-spec.readthedocs.io/en/latest) or the [test case](tests/test_plugin_flask.py). You can change the handlers for Flask-Pydanic-Spec or for a specific endpoint validation.
+This library provides `before` and `after` hooks to do these. Check the [doc](https://flask-pydantic-spec.readthedocs.io/en/latest) or the [test case](tests/test_plugin_flask.py). You can change the handlers for Flask-Pydantic-Spec or for a specific endpoint validation.
 
 ## Demo
 
@@ -94,7 +93,7 @@ Try it with `http post :8000/api/user name=alice age=18`. (if you are using `htt
 ```py
 from flask import Flask, request, jsonify
 from pydantic import BaseModel, Field, constr
-from flask_pydantic_spec import Validator, Response
+from flask_pydantic_spec import FlaskPydanticSpec, Response, Request
 
 
 class Profile(BaseModel):
@@ -121,7 +120,7 @@ class Message(BaseModel):
 
 
 app = Flask(__name__)
-api = Validator('flask')
+api = FlaskPydanticSpec('flask')
 
 
 @app.route('/api/user', methods=['POST'])

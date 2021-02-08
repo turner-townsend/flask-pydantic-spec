@@ -3,11 +3,11 @@ from pydantic import BaseModel, Field
 from random import random
 from enum import Enum
 
-from flask_pydantic_spec import Validator, Response
+from flask_pydantic_spec import FlaskPydanticSpec, Response
 
 
 app = Flask(__name__)
-api = Validator('flask')
+api = FlaskPydanticSpec('flask')
 
 
 class Query(BaseModel):

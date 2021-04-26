@@ -8,7 +8,7 @@ from werkzeug.datastructures import FileStorage
 from flask_pydantic_spec.types import Response, MultipartFormRequest
 from flask_pydantic_spec import FlaskPydanticSpec
 
-from .common import Query, Resp, JSON, Headers, Cookies, DemoModel
+from .common import Query, Resp, JSON, Headers, Cookies, DemoModel, QueryParams, Users
 
 
 def before_handler(req, resp, err, _):
@@ -36,6 +36,26 @@ def ping():
     """summary
     description"""
     return jsonify(msg="pong")
+
+
+@app.route("/api/user", methods=["GET"])
+@api.validate(
+    query=QueryParams,
+    resp=Response(HTTP_200=Users, HTTP_401=None),
+)
+def get_users():
+    allowed_names = ["james", "annabel", "bethany"]
+    query_params = request.context.query
+    return jsonify(
+        {
+            "data": [
+                {"name": name}
+                for name in sorted(
+                    set(allowed_names).intersection(set(query_params.name))
+                )
+            ]
+        }
+    )
 
 
 @app.route("/api/user/<name>", methods=["POST"])
@@ -132,6 +152,21 @@ def test_flask_validate(client):
         content_type="content_type='multipart/form-data'",
     )
     assert resp.status_code == 200
+
+
+@pytest.mark.parametrize("client", [422], indirect=True)
+def test_query_params(client):
+    resp = client.get("api/user?name=james&name=bethany&name=claire")
+    assert resp.status_code == 200
+    assert len(resp.json["data"]) == 2
+    assert resp.json["data"] == [
+        {
+            "name": "bethany",
+        },
+        {
+            "name": "james",
+        },
+    ]
 
 
 @pytest.mark.parametrize("client", [200], indirect=True)

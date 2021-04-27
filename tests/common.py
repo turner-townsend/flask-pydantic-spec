@@ -13,6 +13,18 @@ class Query(BaseModel):
     order: Optional[Order]
 
 
+class QueryParams(BaseModel):
+    name: Optional[List[str]]
+
+
+class User(BaseModel):
+    name: str
+
+
+class Users(BaseModel):
+    data: List[User]
+
+
 class JSON(BaseModel):
     name: str
     limit: int

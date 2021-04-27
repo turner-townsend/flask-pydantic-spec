@@ -18,6 +18,7 @@ from werkzeug.datastructures import EnvironHeaders
 from .config import Config
 from .page import PAGES
 from .types import ResponseBase, RequestBase, Request
+from .utils import parse_multi_dict
 
 
 @dataclass
@@ -132,7 +133,11 @@ class FlaskBackend:
         headers: Optional[Type[BaseModel]],
         cookies: Optional[Type[BaseModel]],
     ) -> None:
-        req_query: Optional[Mapping[str, str]] = request.args or None
+        raw_query = request.args or None
+        if raw_query is not None:
+            req_query = parse_multi_dict(raw_query)
+        else:
+            req_query = {}
         if request.content_type == "application/json":
             parsed_body = request.get_json() or {}
         else:
@@ -143,7 +148,7 @@ class FlaskBackend:
             request,
             "context",
             Context(
-                query=query.parse_obj(req_query or {}) if query else None,
+                query=query.parse_obj(req_query) if query else None,
                 body=getattr(body, "model").parse_obj(parsed_body)
                 if body and getattr(body, "model")
                 else None,

@@ -3,6 +3,7 @@ import logging
 
 from typing import Callable, Mapping, Any, Tuple, Optional, List, Dict
 
+from werkzeug.datastructures import MultiDict
 from flask import Request as FlaskRequest
 from pydantic import BaseModel
 
@@ -177,3 +178,13 @@ def default_after_handler(
                 "spectree_validation": resp_validation_error.errors(),
             },
         )
+
+
+def parse_multi_dict(input: MultiDict) -> Dict[str, Any]:
+    result = {}
+    for key, value in input.to_dict(flat=False).items():
+        if len(value) == 1:
+            result[key] = value[0]
+        else:
+            result[key] = value
+    return result

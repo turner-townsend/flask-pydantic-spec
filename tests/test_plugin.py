@@ -9,6 +9,7 @@ def test_plugin_spec():
     assert get_paths(api.spec) == [
         "/api/file",
         "/api/group/{name}",
+        "/api/user",
         "/api/user/{name}",
         "/ping",
     ]

@@ -26,7 +26,7 @@ Check the [examples](/examples) folder.
 ### Step by Step
 
 1. Define your data structure used in (query, json, headers, cookies, resp) with `pydantic.BaseModel`
-2. create `flask_pydantic_spec.Validator` instance with the web framework name you are using, like `api = Validator('flask')`
+2. create `flask_pydantic_spec.FlaskPydanticSpec` instance with the web framework name you are using, like `api = FlaskPydanticSpec('flask')`
 3. `api.validate` decorate the route with
    * `query`
    * `body`
@@ -147,7 +147,3 @@ if __name__ == "__main__":
 
 The HTTP headers' keys in Flask are capitalized.
 You can use [`pydantic.root_validators(pre=True)`](https://pydantic-docs.helpmanual.io/usage/validators/#root-validators) to change all the keys into lower cases or upper cases.
-
-> ValidationError: value is not a valid list for query
-
-Since there is no standard for HTTP query with multiple values, it's hard to find the way to handle this for different web frameworks. So I suggest not to use list type in query until I find a suitable way to fix it.

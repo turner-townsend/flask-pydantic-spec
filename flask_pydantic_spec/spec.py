@@ -121,14 +121,14 @@ class FlaskPydanticSpec:
         - add tags to this API route
 
         :param query: `pydantic.BaseModel`, query in uri like `?name=value`
-        :param body: `spectree.Request`, Request body
+        :param body: `flask_pydantic_spec.Request`, Request body
         :param headers: `pydantic.BaseModel`, if you have specific headers
         :param cookies: `pydantic.BaseModel`, if you have cookies for this route
-        :param resp: `spectree.Response`
+        :param resp: `flask_pydantic_spec.Response`
         :param tags: a tuple of tags string
         :param deprecated: You can mark specific operations as deprecated to indicate that they should be transitioned out of usage
-        :param before: :meth:`spectree.utils.default_before_handler` for specific endpoint
-        :param after: :meth:`spectree.utils.default_after_handler` for specific endpoint
+        :param before: :meth:`flask_pydantic_spec.utils.default_before_handler` for specific endpoint
+        :param after: :meth:`flask_pydantic_spec.utils.default_after_handler` for specific endpoint
         """
 
         def decorate_validation(func: Callable) -> Callable:
@@ -306,6 +306,9 @@ class FlaskPydanticSpec:
         for model, schema in self.models.items():
             if model not in definitions.keys():
                 definitions[model] = schema
+            else:
+                if definitions[model] != schema:
+                    raise ValueError(f"Duplicate schema found for type - {model}")
             if "definitions" in schema:
                 for key, value in schema["definitions"].items():
                     definitions[key] = self._get_open_api_schema(value)

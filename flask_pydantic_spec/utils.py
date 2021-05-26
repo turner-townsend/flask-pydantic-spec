@@ -4,7 +4,6 @@ import logging
 from typing import Callable, Mapping, Any, Tuple, Optional, List, Dict
 
 from werkzeug.datastructures import MultiDict
-from flask import Request as FlaskRequest
 from pydantic import BaseModel
 
 from .types import Response, RequestBase, Request

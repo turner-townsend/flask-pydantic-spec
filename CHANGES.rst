@@ -1,5 +1,13 @@
 .. currentmodule:: flask-pydantic-spec
 
+Version 0.1.5
+-------------
+
+Released 2021-07-29
+
+- Fixed a bug where a model added to a query that contained a reference to another model would not get added to the OpenAPI document correctly.
+
+
 Version 0.1.4
 -------------
 

@@ -54,42 +54,45 @@ def parse_params(
     """
     if hasattr(func, "query"):
         model_name = getattr(func, "query").__name__
-        query = models[model_name]
-        for name, schema in query["properties"].items():
-            params.append(
-                {
-                    "name": name,
-                    "in": "query",
-                    "schema": schema,
-                    "required": name in query.get("required", []),
-                }
-            )
+        query = models.get(model_name)
+        if query is not None:
+            for name, schema in query["properties"].items():
+                params.append(
+                    {
+                        "name": name,
+                        "in": "query",
+                        "schema": schema,
+                        "required": name in query.get("required", []),
+                    }
+                )
 
     if hasattr(func, "headers"):
         model_name = getattr(func, "headers").__name__
-        headers = models[model_name]
-        for name, schema in headers["properties"].items():
-            params.append(
-                {
-                    "name": name,
-                    "in": "header",
-                    "schema": schema,
-                    "required": name in headers.get("required", []),
-                }
-            )
+        headers = models.get(model_name)
+        if headers is not None:
+            for name, schema in headers["properties"].items():
+                params.append(
+                    {
+                        "name": name,
+                        "in": "header",
+                        "schema": schema,
+                        "required": name in headers.get("required", []),
+                    }
+                )
 
     if hasattr(func, "cookies"):
         model_name = getattr(func, "cookies").__name__
-        cookies = models[model_name]
-        for name, schema in cookies["properties"].items():
-            params.append(
-                {
-                    "name": name,
-                    "in": "cookie",
-                    "schema": schema,
-                    "required": name in cookies.get("required", []),
-                }
-            )
+        cookies = models.get(model_name)
+        if cookies is not None:
+            for name, schema in cookies["properties"].items():
+                params.append(
+                    {
+                        "name": name,
+                        "in": "cookie",
+                        "schema": schema,
+                        "required": name in cookies.get("required", []),
+                    }
+                )
 
     return params
 

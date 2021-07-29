@@ -1,6 +1,6 @@
 import logging
 
-from typing import Optional, Mapping, Callable, Any, Tuple, List, Type, Union
+from typing import Optional, Mapping, Callable, Any, Tuple, List, Type, Iterable, Dict
 from dataclasses import dataclass
 
 from pydantic import ValidationError, BaseModel
@@ -13,11 +13,11 @@ from flask import (
     Flask,
     Response as FlaskResponse,
 )
-from werkzeug.datastructures import EnvironHeaders
+from werkzeug.datastructures import Headers
 
 from .config import Config
 from .page import PAGES
-from .types import ResponseBase, RequestBase, Request
+from .types import ResponseBase, RequestBase
 from .utils import parse_multi_dict
 
 
@@ -60,16 +60,17 @@ class FlaskBackend:
         subs = []
         parameters = []
 
-        for converter, arguments, variable in parse_rule(str(route)):  # type: ignore
+        for converter, arguments, variable in parse_rule(str(route)):
             if converter is None:
                 subs.append(variable)
                 continue
             subs.append(f"{{{variable}}}")
 
-            args, kwargs = [], {}
+            args: Iterable[Any] = []
+            kwargs: Dict[str, Any] = {}
 
             if arguments:
-                args, kwargs = parse_converter_args(arguments)  # type: ignore
+                args, kwargs = parse_converter_args(arguments)
 
             schema = None
             if converter == "any":
@@ -142,7 +143,7 @@ class FlaskBackend:
             parsed_body = request.get_json() or {}
         else:
             parsed_body = request.get_data() or {}
-        req_headers: Optional[EnvironHeaders] = request.headers or None
+        req_headers: Optional[Headers] = request.headers or None
         req_cookies: Optional[Mapping[str, str]] = request.cookies or None
         setattr(
             request,

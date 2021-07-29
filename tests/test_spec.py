@@ -1,3 +1,6 @@
+from enum import Enum
+from typing import Optional
+
 import pytest
 from flask import Flask
 from typing import List
@@ -17,6 +20,16 @@ class ExampleModel(BaseModel):
     name: str = Field(strip_whitespace=True)
     age: int
     height: StrictFloat
+
+
+class TypeEnum(str, Enum):
+    foo = "foo"
+    bar = "bar"
+
+
+class ExampleQuery(BaseModel):
+    query: str
+    type: Optional[TypeEnum]
 
 
 class ExampleNestedList(BaseModel):
@@ -105,6 +118,11 @@ def create_app():
     def lone_post():
         pass
 
+    @app.route("/query", methods=["GET"])
+    @api.validate(query=ExampleQuery)
+    def get_query():
+        pass
+
     @app.route("/file")
     @api.validate(resp=FileResponse())
     def get_file():
@@ -131,11 +149,23 @@ def create_app():
 def test_spec_bypass_mode():
     app = create_app()
     api.register(app)
-    assert get_paths(api.spec) == ["/file", "/foo", "/lone", "/multipart-file"]
+    assert get_paths(api.spec) == [
+        "/file",
+        "/foo",
+        "/lone",
+        "/multipart-file",
+        "/query",
+    ]
 
     app = create_app()
     api_customize_backend.register(app)
-    assert get_paths(api.spec) == ["/file", "/foo", "/lone", "/multipart-file"]
+    assert get_paths(api.spec) == [
+        "/file",
+        "/foo",
+        "/lone",
+        "/multipart-file",
+        "/query",
+    ]
 
     app = create_app()
     api_greedy.register(app)
@@ -145,6 +175,7 @@ def test_spec_bypass_mode():
         "/foo",
         "/lone",
         "/multipart-file",
+        "/query",
     ]
 
     app = create_app()

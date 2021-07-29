@@ -296,7 +296,9 @@ class FlaskPydanticSpec:
                 result[key] = self._validate_property(value)
             else:
                 result[key] = value
-        return result
+        return cast(
+            Mapping[str, Any], nested_alter(result, "$ref", _move_schema_reference)
+        )
 
     def _get_model_definitions(self) -> Dict[str, Any]:
         """
@@ -311,7 +313,7 @@ class FlaskPydanticSpec:
                     definitions[key] = self._get_open_api_schema(value)
                 del schema["definitions"]
 
-        return cast(Dict, nested_alter(definitions, "$ref", _move_schema_reference))
+        return definitions
 
     def _parse_request_body(self, request_body: Mapping[str, Any]) -> Mapping[str, Any]:
         content_types = list(request_body["content"].keys())

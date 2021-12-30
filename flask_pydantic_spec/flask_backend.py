@@ -139,7 +139,7 @@ class FlaskBackend:
             req_query = parse_multi_dict(raw_query)
         else:
             req_query = {}
-        if request.content_type == "application/json":
+        if "application/json" in request.content_type:
             parsed_body = request.get_json() or {}
         else:
             parsed_body = request.get_data() or {}

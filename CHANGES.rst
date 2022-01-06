@@ -1,5 +1,12 @@
 .. currentmodule:: flask-pydantic-spec
 
+Version 0.2.0
+-------------
+
+Release 2022-01-06
+
+- Relax pip dependency versions
+
 Version 0.1.5
 -------------
 

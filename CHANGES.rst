@@ -1,5 +1,12 @@
 .. currentmodule:: flask-pydantic-spec
 
+Version 0.2.1
+-------------
+
+Release 2022-01-11
+
+- Relax restrictions on content-type when checking for "application/json".
+
 Version 0.2.0
 -------------
 

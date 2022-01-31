@@ -1,3 +1,4 @@
+from datetime import date
 from enum import IntEnum, Enum
 from typing import List, Optional
 
@@ -66,3 +67,7 @@ def get_paths(spec):
 
     paths.sort()
     return paths
+
+
+class HistoryDate(BaseModel):
+    date: date

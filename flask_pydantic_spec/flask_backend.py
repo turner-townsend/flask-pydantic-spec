@@ -190,7 +190,12 @@ class FlaskBackend:
             model = resp.find_model(response.status_code)
             if model:
                 try:
-                    model.validate(response.get_json())
+                    # to allow using pydantic json method in views
+                    # validation is achieved by the model itself through parse_raw
+                    model.parse_raw(response.data)
+                    # jsonify not beeing used in favor of pydantic json method the mimetype has to be forced
+                    # this is harmless when using jsonify. validating pydantic implies json.
+                    response.mimetype = 'application/json'
                 except ValidationError as err:
                     resp_validation_error = err
                     response = make_response(

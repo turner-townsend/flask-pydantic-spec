@@ -4,11 +4,12 @@ import pytest
 import json
 from flask import Flask, jsonify, request
 from werkzeug.datastructures import FileStorage
+import datetime
 
 from flask_pydantic_spec.types import Response, MultipartFormRequest
 from flask_pydantic_spec import FlaskPydanticSpec
 
-from .common import Query, Resp, JSON, Headers, Cookies, DemoModel, QueryParams, Users
+from .common import HistoryDate, Query, Resp, JSON, Headers, Cookies, DemoModel, QueryParams, Users
 
 
 def before_handler(req, resp, err, _):
@@ -94,6 +95,31 @@ def upload_file():
     return jsonify(uid=1, limit=2, name="success")
 
 
+API_DATE_TODAY = datetime.date.today()
+
+
+@app.route("/api/date_direct", methods=["GET"])
+@api.validate(resp=Response(HTTP_200=HistoryDate))
+def working_date_validation_direct():
+    historyDate = HistoryDate(date=API_DATE_TODAY)
+    return historyDate.json()
+
+
+@app.route("/api/date_cumbersome", methods=["GET"])
+@api.validate(resp=Response(HTTP_200=HistoryDate))
+def working_date_validation_cumbersome():
+    historyDate = HistoryDate(date=API_DATE_TODAY)
+    return jsonify(json.loads(historyDate.json()))
+
+
+@app.route("/api/date_naive_not_working", methods=["GET"])
+@api.validate(resp=Response(HTTP_200=HistoryDate))
+def not_working_date_naive():
+    historyDate = HistoryDate(date=API_DATE_TODAY)
+    # will throw not serializable cause flask default encoders are used
+    return jsonify(historyDate)
+
+
 api.register(app)
 
 
@@ -152,6 +178,21 @@ def test_flask_validate(client):
         content_type="content_type='multipart/form-data'",
     )
     assert resp.status_code == 200
+
+    resp = client.get(
+        "/api/date_direct"
+    )
+    assert resp.status_code == 200
+    assert datetime.date.fromisoformat(resp.json['date']) == API_DATE_TODAY
+    resp = client.get(
+        "/api/date_cumbersome"
+    )
+    assert resp.status_code == 200
+    assert datetime.date.fromisoformat(resp.json['date']) == API_DATE_TODAY
+    resp = client.get(
+        "/api/date_naive_not_working"
+    )
+    assert resp.status_code == 500
 
 
 @pytest.mark.parametrize("client", [422], indirect=True)

@@ -7,6 +7,9 @@ def test_plugin_spec():
     assert api.spec["tags"] == [{"name": tag} for tag in ("test", "health", "api")]
 
     assert get_paths(api.spec) == [
+        "/api/date_cumbersome",
+        "/api/date_direct",
+        "/api/date_naive_not_working",
         "/api/file",
         "/api/group/{name}",
         "/api/user",

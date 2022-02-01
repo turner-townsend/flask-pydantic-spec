@@ -84,7 +84,7 @@ def test_file_request_spec():
 
 
 def test_multipart_form_spec():
-    form = MultipartFormRequest(DemoModel, "file")
+    form = MultipartFormRequest(DemoModel, "fileName")
     spec = form.generate_spec()
     assert spec["content"] == {
         "multipart/form-data": {
@@ -97,7 +97,7 @@ def test_multipart_form_spec():
                     },
                     "limit": {"type": "integer", "title": "Limit"},
                     "name": {"type": "string", "title": "Name"},
-                    "file": {"type": "string", "format": "binary"},
+                    "fileName": {"type": "string", "format": "binary"},
                 },
             }
         }
@@ -112,7 +112,7 @@ def test_multipart_form_no_model():
             "schema": {
                 "type": "object",
                 "properties": {
-                    "fileName": {"type": "string", "format": "binary"},
+                    "file": {"type": "string", "format": "binary"},
                 },
             }
         }

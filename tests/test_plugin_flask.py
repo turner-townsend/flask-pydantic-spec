@@ -8,7 +8,17 @@ from werkzeug.datastructures import FileStorage
 from flask_pydantic_spec.types import Response, MultipartFormRequest
 from flask_pydantic_spec import FlaskPydanticSpec
 
-from .common import Query, Resp, JSON, Headers, Cookies, DemoModel, QueryParams, Users
+from .common import (
+    Query,
+    Resp,
+    JSON,
+    Headers,
+    Cookies,
+    DemoModel,
+    QueryParams,
+    Users,
+    FileName,
+)
 
 
 def before_handler(req, resp, err, _):
@@ -87,11 +97,15 @@ def group_score(name):
 
 
 @app.route("/api/file", methods=["POST"])
-@api.validate(body=MultipartFormRequest(), resp=Response(HTTP_200=DemoModel))
+@api.validate(
+    body=MultipartFormRequest(model=FileName), resp=Response(HTTP_200=DemoModel)
+)
 def upload_file():
     files = request.files
+    body = request.context.body
+    assert body is not None
     assert files is not None
-    return jsonify(uid=1, limit=2, name="success")
+    return jsonify(uid=1, limit=2, name=body.file_name)
 
 
 api.register(app)
@@ -145,13 +159,17 @@ def test_flask_validate(client):
     )
     assert resp.json["score"] == sorted(resp.json["score"], reverse=False)
 
-    file = FileStorage(BytesIO(b"abcde"), filename="fileName", name="test.jpg")
+
+@pytest.mark.parametrize("client", [422], indirect=True)
+def test_sending_file(client):
+    file = FileStorage(BytesIO(b"abcde"), filename="test.jpg", name="test.jpg")
     resp = client.post(
         "/api/file",
-        data={"fileName": file},
-        content_type="content_type='multipart/form-data'",
+        data={"file": file, "file_name": "another_test.jpg"},
+        content_type="multipart/form-data",
     )
     assert resp.status_code == 200
+    assert resp.json["name"] == "another_test.jpg"
 
 
 @pytest.mark.parametrize("client", [422], indirect=True)

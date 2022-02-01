@@ -58,6 +58,10 @@ class DemoModel(BaseModel):
     name: str
 
 
+class FileName(BaseModel):
+    file_name: str
+
+
 def get_paths(spec):
     paths = []
     for path in spec["paths"]:

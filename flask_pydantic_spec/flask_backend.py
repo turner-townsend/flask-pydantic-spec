@@ -141,6 +141,8 @@ class FlaskBackend:
             req_query = {}
         if request.content_type and "application/json" in request.content_type:
             parsed_body = request.get_json() or {}
+        elif request.content_type and "multipart/form-data" in request.content_type:
+            parsed_body = request.form or {}
         else:
             parsed_body = request.get_data() or {}
         req_headers: Optional[Headers] = request.headers or None

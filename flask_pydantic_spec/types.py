@@ -177,12 +177,12 @@ class MultipartFormRequest(RequestBase):
     def __init__(
         self,
         model: Optional[Type[BaseModel]] = None,
-        file_name: str = "fileName",
+        file_key: str = "file",
         encoding: str = "binary",
     ):
         self.content_type = "multipart/form-data"
         self.model = model
-        self.file_name = file_name
+        self.file_key = file_key
         self.encoding = encoding
 
     def has_model(self) -> bool:
@@ -202,7 +202,7 @@ class MultipartFormRequest(RequestBase):
                         "type": "object",
                         "properties": {
                             **additional_properties,
-                            self.file_name: {
+                            self.file_key: {
                                 "type": "string",
                                 "format": self.encoding,
                             },

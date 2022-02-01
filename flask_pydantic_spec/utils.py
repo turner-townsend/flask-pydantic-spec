@@ -33,7 +33,7 @@ def parse_request(func: Callable) -> Mapping[str, Any]:
     Generate spec from body parameter on the view function validation decorator
     """
     if hasattr(func, "body"):
-        request_body = getattr(func, "body", None)
+        request_body = getattr(func, "body")
         if isinstance(request_body, RequestBase):
             result: Mapping[str, Any] = request_body.generate_spec()
         elif issubclass(request_body, BaseModel):
@@ -107,7 +107,9 @@ def parse_resp(func: Callable, code: int) -> Mapping[str, Mapping[str, Any]]:
     """
     responses: Dict[str, Any] = {}
     if hasattr(func, "resp"):
-        responses = getattr(func, "resp", {}).generate_spec()
+        response = getattr(func, "resp")
+        if response:
+            responses = response.generate_spec()
 
     if str(code) not in responses and has_model(func):
         responses[str(code)] = {"description": "Validation Error"}

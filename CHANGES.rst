@@ -1,4 +1,11 @@
 .. currentmodule:: flask-pydantic-spec
+VERSION 0.3.0
+-------------
+
+Release 2022-02-1
+
+- Fix logic when adding a model to multipart/form-data requests
+
 
 Version 0.2.1
 -------------

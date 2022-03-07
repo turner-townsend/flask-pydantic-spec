@@ -1,4 +1,12 @@
 .. currentmodule:: flask-pydantic-spec
+VERSION 0.3.1
+-------------
+
+Release 2022-03-07
+
+- Add ability to correctly parse and validate gzipped requests
+
+
 VERSION 0.3.0
 -------------
 

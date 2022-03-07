@@ -1,3 +1,5 @@
+import gzip
+import json
 import logging
 
 from typing import Optional, Mapping, Callable, Any, Tuple, List, Type, Iterable, Dict
@@ -140,7 +142,13 @@ class FlaskBackend:
         else:
             req_query = {}
         if request.content_type and "application/json" in request.content_type:
-            parsed_body = request.get_json() or {}
+            if request.content_encoding and "gzip" in request.content_encoding:
+                raw_body = gzip.decompress(request.stream.read()).decode(
+                    encoding="utf-8"
+                )
+                parsed_body = json.loads(raw_body)
+            else:
+                parsed_body = request.get_json() or {}
         elif request.content_type and "multipart/form-data" in request.content_type:
             parsed_body = request.form or {}
         else:

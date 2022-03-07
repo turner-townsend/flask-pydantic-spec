@@ -1,5 +1,6 @@
 from io import BytesIO
 from random import randint
+import gzip
 import pytest
 import json
 from flask import Flask, jsonify, request
@@ -218,3 +219,41 @@ def test_flask_validate_with_alternative_code(client):
     resp = client.post("api/user/flask")
     assert resp.status_code == 400
     assert resp.headers.get("X-Error") == "Validation Error"
+
+
+@pytest.mark.parametrize("client", [400], indirect=True)
+def test_flask_post_gzip(client):
+    body = dict(name="flask", limit=10)
+    compressed = gzip.compress(bytes(json.dumps(body), encoding="utf-8"))
+
+    client.set_cookie("flask", "pub", "abcdefg")
+    resp = client.post(
+        "/api/user/flask?order=0",
+        data=compressed,
+        headers={
+            "content-type": "application/json",
+            "content-encoding": "gzip",
+        },
+    )
+    assert resp.status_code == 200
+    assert resp.json["name"] == "flask"
+
+
+@pytest.mark.parametrize("client", [400], indirect=True)
+def test_flask_post_gzip_failure(client):
+    body = dict(name="flask")
+    compressed = gzip.compress(bytes(json.dumps(body), encoding="utf-8"))
+
+    client.set_cookie("flask", "pub", "abcdefg")
+    resp = client.post(
+        "/api/user/flask?order=0",
+        data=compressed,
+        headers={
+            "content-type": "application/json",
+            "content-encoding": "gzip",
+        },
+    )
+    assert resp.status_code == 400
+    assert resp.json == [
+        {"loc": ["limit"], "msg": "field required", "type": "value_error.missing"}
+    ]

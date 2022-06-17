@@ -62,6 +62,9 @@ class FlaskPydanticSpec:
         self.models: Dict[str, Any] = {}
         if app:
             self.register(app)
+        self.class_view_api_info = dict()  # class view info when adding validate decorator
+        self.class_view_apispec = dict()  # convert class_view_api_info into openapi spec
+
 
     def register(self, app: Flask) -> None:
         """
@@ -114,6 +117,7 @@ class FlaskPydanticSpec:
         deprecated: bool = False,
         before: Optional[Callable] = None,
         after: Optional[Callable] = None,
+        publish: bool = True,
     ) -> Callable:
         """
         - validate query, body, headers in request
@@ -129,6 +133,7 @@ class FlaskPydanticSpec:
         :param deprecated: You can mark specific operations as deprecated to indicate that they should be transitioned out of usage
         :param before: :meth:`spectree.utils.default_before_handler` for specific endpoint
         :param after: :meth:`spectree.utils.default_after_handler` for specific endpoint
+        :param publish: publish api to api doc (only for class based flask view)
         """
 
         def decorate_validation(func: Callable) -> Callable:
@@ -149,6 +154,23 @@ class FlaskPydanticSpec:
 
             validation = sync_validate
 
+            class_view = False
+            params = []
+            if "." in func.__qualname__:
+                class_view = True
+                view_name, method = func.__qualname__.split(".")
+                if view_name not in self.class_view_api_info:
+                    self.class_view_api_info[view_name] = {method: {}}
+                else:
+                    self.class_view_api_info[view_name][method] = {}
+                summary, desc = parse_comments(func)
+                self.class_view_api_info[view_name][method]["publish"] = publish
+                self.class_view_api_info[view_name][method]["summary"] = summary
+                self.class_view_api_info[view_name][method]["description"] = desc
+                self.class_view_api_info[view_name][method]["responses"] = {
+                    "200": {"description": "ok"}
+                }
+
             # register
             for name, model in zip(
                 ("query", "body", "headers", "cookies"), (query, body, headers, cookies)
@@ -162,21 +184,50 @@ class FlaskPydanticSpec:
                         self.models[_model.__name__] = self._get_open_api_schema(_model.schema())
                     setattr(validation, name, model)
 
+                    if class_view:
+                        model_schema = self._get_open_api_schema(_model.schema())
+                        for param_name, schema in model_schema["properties"].items():
+                            params.append(
+                                {
+                                    "name": param_name,
+                                    "in": name,
+                                    "schema": schema,
+                                    "required": name in model_schema.get("required", []),
+                                }
+                            )
+
+                if class_view:
+                    self.class_view_api_info[view_name][method]["parameters"] = [
+                        param for param in params if param["in"] == "query"
+                    ]
+                    if hasattr(validation, "body"):
+                        self.class_view_api_info[view_name][method]["requestBody"] = parse_request(
+                            validation
+                        )
+
             if resp:
                 for model in resp.models:
                     if model:
                         assert not isinstance(model, RequestBase)
-                        self.models[model.__name__] = self._get_open_api_schema(model.schema())
+                        self.models[model.__name__] = self._get_open_api_schema(
+                            model.schema()
+                        )
+                        if class_view:
+                            for k, v in resp.generate_spec().items():
+                                self.class_view_api_info[view_name][method]["responses"][k] = v
                 setattr(validation, "resp", resp)
 
             if tags:
                 setattr(validation, "tags", tags)
+                if class_view:
+                    self.class_view_api_info[view_name][method]["tags"] = tags
 
             if deprecated:
                 setattr(validation, "deprecated", True)
 
             # register decorator
             setattr(validation, "_decorator", self)
+            setattr(validation, "publish", publish)
             return validation
 
         return decorate_validation

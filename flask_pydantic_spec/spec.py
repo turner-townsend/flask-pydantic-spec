@@ -306,6 +306,20 @@ class FlaskPydanticSpec:
             "paths": {**routes},
             "components": {"schemas": {**self._get_model_definitions()}},
         }
+
+        if self.config.SECURITY:
+            spec["security"] = self.config.SECURITY
+
+        if self.config.SECURITY_SCHEMES:
+            spec["components"]["securitySchemes"] = self.config.SECURITY_SCHEMES
+
+        if self.config.SERVERS:
+            spec["servers"] = self.config.SERVERS
+
+        if self.config.EXTRA_FIELDS:
+            for k, v in self.config.EXTRA_FIELDS.items():
+                spec[k] = v
+
         return spec
 
     def _validate_property(self, property: Mapping[str, Any]) -> Dict[str, Any]:

@@ -32,6 +32,11 @@ class Config:
         self.INFO: Dict[str, str] = {}
         self.TAGS: List[Mapping[str, str]] = []
 
+        self.SECURITY: Optional[List] = None
+        self.SECURITY_SCHEMES: Optional[Dict] = None
+        self.SERVERS: Optional[List] = None
+        self.EXTRA_FIELDS = None
+
         self.logger = logging.getLogger(__name__)
 
         self.update(**kwargs)

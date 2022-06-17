@@ -45,9 +45,7 @@ def parse_request(func: Callable) -> Mapping[str, Any]:
 
 
 def parse_params(
-    func: Callable,
-    params: List[Mapping[str, Any]],
-    models: Mapping[str, Any],
+    func: Callable, params: List[Mapping[str, Any]], models: Mapping[str, Any],
 ) -> List[Mapping[str, Any]]:
     """
     get spec for (query, headers, cookies)

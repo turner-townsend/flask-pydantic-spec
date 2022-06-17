@@ -159,18 +159,14 @@ class FlaskPydanticSpec:
                     else:
                         _model = model
                     if _model:
-                        self.models[_model.__name__] = self._get_open_api_schema(
-                            _model.schema()
-                        )
+                        self.models[_model.__name__] = self._get_open_api_schema(_model.schema())
                     setattr(validation, name, model)
 
             if resp:
                 for model in resp.models:
                     if model:
                         assert not isinstance(model, RequestBase)
-                        self.models[model.__name__] = self._get_open_api_schema(
-                            model.schema()
-                        )
+                        self.models[model.__name__] = self._get_open_api_schema(model.schema())
                 setattr(validation, "resp", resp)
 
             if tags:
@@ -219,18 +215,15 @@ class FlaskPydanticSpec:
 
                 request_body = parse_request(func)
                 if request_body:
-                    routes[path][method.lower()][
-                        "requestBody"
-                    ] = self._parse_request_body(request_body)
+                    routes[path][method.lower()]["requestBody"] = self._parse_request_body(
+                        request_body
+                    )
 
         spec = {
             "openapi": self.config.OPENAPI_VERSION,
             "info": {
                 **self.config.INFO,
-                **{
-                    "title": self.config.TITLE,
-                    "version": self.config.VERSION,
-                },
+                **{"title": self.config.TITLE, "version": self.config.VERSION,},
             },
             "tags": list(tags.values()),
             "paths": {**routes},
@@ -296,9 +289,7 @@ class FlaskPydanticSpec:
                 result[key] = self._validate_property(value)
             else:
                 result[key] = value
-        return cast(
-            Mapping[str, Any], nested_alter(result, "$ref", _move_schema_reference)
-        )
+        return cast(Mapping[str, Any], nested_alter(result, "$ref", _move_schema_reference))
 
     def _get_model_definitions(self) -> Dict[str, Any]:
         """
@@ -326,8 +317,6 @@ class FlaskPydanticSpec:
         schema = request_body["content"][content_type]["schema"]
         if "$ref" not in schema.keys():
             # handle inline schema definitions
-            return {
-                "content": {content_type: {"schema": self._get_open_api_schema(schema)}}
-            }
+            return {"content": {content_type: {"schema": self._get_open_api_schema(schema)}}}
         else:
             return request_body

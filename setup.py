@@ -18,8 +18,7 @@ setup(
     author="Chris Gearing, Simon Hayward, Rob Young, Donald Fleming, Saurabh Jha",
     author_email="chris.gearing@turntown.digital",
     description=(
-        "generate OpenAPI document and validate request & response "
-        "with Python annotations."
+        "generate OpenAPI document and validate request & response " "with Python annotations."
     ),
     long_description=readme,
     long_description_content_type="text/markdown",
@@ -36,11 +35,7 @@ setup(
     ],
     python_requires=">=3.6",
     install_requires=requires,
-    extras_require={
-        "flask": ["flask"],
-    },
+    extras_require={"flask": ["flask"],},
     zip_safe=False,
-    entry_points={
-        "console_scripts": [],
-    },
+    entry_points={"console_scripts": [],},
 )

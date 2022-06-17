@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from pydantic import BaseModel, Field, constr, Extra
+from pydantic import BaseModel, Field, Extra
 from flask_pydantic_spec import FlaskPydanticSpec, Response, Request
 import time
 
@@ -106,13 +106,16 @@ if __name__ == "__main__":
     app.add_url_rule(
         "/api/testquery", methods=["GET", "POST"], view_func=TestQueryView.as_view("TestQueryView"),
     )
+    api.register_class_view_apidoc(TestQueryView)
 
     app.add_url_rule(
         "/api/testpath/<id>", methods=["POST"], view_func=TestPathView.as_view("TestPathView"),
     )
+    api.register_class_view_apidoc(TestPathView)
 
     app.add_url_rule(
         "/api/testbody/<id>", methods=["POST"], view_func=TestBodyView.as_view("TestBodyView"),
     )
+    api.register_class_view_apidoc(TestBodyView)
 
     app.run(port=8000)

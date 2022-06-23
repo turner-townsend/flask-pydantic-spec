@@ -22,7 +22,7 @@ class Config:
         self.UI: str = "redoc"
         self._SUPPORT_UI: Set[str] = {"redoc", "swagger"}
         self.MODE: str = "normal"
-        self._SUPPORT_MODE: Set[str] = {"normal", "strict", "greedy"}
+        self._SUPPORT_MODE: Set[str] = {"normal", "strict", "greedy", "publish_only"}
         self.VALIDATION_ERROR_CODE: int = 422
 
         self.TITLE: str = "Service API Document"

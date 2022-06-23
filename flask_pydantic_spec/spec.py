@@ -93,10 +93,6 @@ class FlaskPydanticSpec:
         :greedy:    collect all the routes
         :strict:    collect all the routes decorated by this instance
         """
-        # bypass generating api doc for endpoint set publish as false
-        if not getattr(func, "publish", True):
-            return True
-
         if self.config.MODE == "greedy":
             return False
         elif self.config.MODE == "strict":
@@ -109,6 +105,11 @@ class FlaskPydanticSpec:
                 return True
             return False
 
+    def bypass_unpublish(self, func: Callable) -> bool:
+        """ bypass unpublished APIs under publish_only mode"""
+        if self.config.MODE == "publish_only":
+            return not getattr(func, "publish", False)
+
     def validate(
         self,
         query: Optional[Type[BaseModel]] = None,
@@ -120,7 +121,7 @@ class FlaskPydanticSpec:
         deprecated: bool = False,
         before: Optional[Callable] = None,
         after: Optional[Callable] = None,
-        publish: bool = True,
+        publish: bool = False,
     ) -> Callable:
         """
         - validate query, body, headers in request
@@ -242,7 +243,6 @@ class FlaskPydanticSpec:
         tags: Dict[str, Any] = {}
         for route in self.backend.find_routes():
             path, parameters = self.backend.parse_path(route)
-            routes[path] = routes.get(path, {})
             for method, func in self.backend.parse_func(route):
                 if self.backend.bypass(func, method) or self.bypass(func):
                     continue
@@ -264,6 +264,7 @@ class FlaskPydanticSpec:
                     path in self.class_view_apispec
                     and method.lower() in self.class_view_apispec[path]
                 ):
+                    # flask class view
                     summary = self.class_view_apispec[path][method.lower()]["summary"]
                     operation_id = camelize(method.lower() + name, False)
                     desc = self.class_view_apispec[path][method.lower()]["description"]
@@ -276,9 +277,15 @@ class FlaskPydanticSpec:
                         "requestBody", None
                     )
                     publish = self.class_view_apispec[path][method.lower()]["publish"]
-                    if not publish:
+                    if self.config.MODE == "publish_only" and not publish:
+                        continue
+                else:
+                    # flask function view
+                    if self.bypass_unpublish(func):
                         continue
 
+                if path not in routes:
+                    routes[path] = dict()
                 routes[path][method.lower()] = {
                     "summary": summary or f"{name} <{method}>",
                     "operationId": operation_id,

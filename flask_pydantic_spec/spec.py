@@ -67,6 +67,7 @@ class FlaskPydanticSpec:
         self.routes_by_category = dict()  # routes openapi info by category as key in the dict
         self._spec_by_category = dict()  # openapi spec by category
         self._models_by_category = defaultdict(dict)  # model schemas by category
+        self.tags = dict()
 
     def register(self, app: Flask) -> None:
         """
@@ -286,7 +287,6 @@ class FlaskPydanticSpec:
         """
         tag_lookup = {tag["name"]: tag for tag in self.config.TAGS}
         routes: Dict[str, Any] = {}
-        tags: Dict[str, Any] = {}
         for route in self.backend.find_routes():
             path, parameters = self.backend.parse_path(route)
             for method, func in self.backend.parse_func(route):
@@ -297,8 +297,8 @@ class FlaskPydanticSpec:
                 summary, desc = parse_comments(func)
                 func_tags = getattr(func, "tags", ())
                 for tag in func_tags:
-                    if tag not in tags:
-                        tags[tag] = tag_lookup.get(tag, {"name": tag})
+                    if tag not in self.tags:
+                        self.tags[tag] = tag_lookup.get(tag, {"name": tag})
 
                 request_body = parse_request(func)
 

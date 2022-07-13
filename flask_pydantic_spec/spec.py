@@ -234,6 +234,33 @@ class FlaskPydanticSpec:
 
         return decorate_validation
 
+    def _generate_spec_common(self, routes, category=None):
+        spec = {
+            "openapi": self.config.OPENAPI_VERSION,
+            "info": {
+                **self.config.INFO,
+                **{"title": self.config.TITLE, "version": self.config.VERSION,},
+            },
+            "tags": list(self.tags.values()),
+            "paths": {**routes},
+            "components": {"schemas": {**self._get_model_definitions(category)}},
+        }
+
+        if self.config.SECURITY:
+            spec["security"] = self.config.SECURITY
+
+        if self.config.SECURITY_SCHEMES:
+            spec["components"]["securitySchemes"] = self.config.SECURITY_SCHEMES
+
+        if self.config.SERVERS:
+            spec["servers"] = self.config.SERVERS
+
+        if self.config.EXTRA_FIELDS:
+            for k, v in self.config.EXTRA_FIELDS.items():
+                spec[k] = v
+
+        return spec
+
     def _generate_spec(self) -> Mapping[str, Any]:
         """
         generate OpenAPI spec according to routes and decorators
@@ -303,31 +330,7 @@ class FlaskPydanticSpec:
                         request_body
                     )
 
-        spec = {
-            "openapi": self.config.OPENAPI_VERSION,
-            "info": {
-                **self.config.INFO,
-                **{"title": self.config.TITLE, "version": self.config.VERSION,},
-            },
-            "tags": list(tags.values()),
-            "paths": {**routes},
-            "components": {"schemas": {**self._get_model_definitions()}},
-        }
-
-        if self.config.SECURITY:
-            spec["security"] = self.config.SECURITY
-
-        if self.config.SECURITY_SCHEMES:
-            spec["components"]["securitySchemes"] = self.config.SECURITY_SCHEMES
-
-        if self.config.SERVERS:
-            spec["servers"] = self.config.SERVERS
-
-        if self.config.EXTRA_FIELDS:
-            for k, v in self.config.EXTRA_FIELDS.items():
-                spec[k] = v
-
-        return spec
+        return self._generate_spec_common(routes)
 
     def _validate_property(self, property: Mapping[str, Any]) -> Dict[str, Any]:
         allowed_fields = {
@@ -389,12 +392,16 @@ class FlaskPydanticSpec:
                 result[key] = value
         return cast(Mapping[str, Any], nested_alter(result, "$ref", _move_schema_reference))
 
-    def _get_model_definitions(self) -> Dict[str, Any]:
+    def _get_model_definitions(self, category=None) -> Dict[str, Any]:
         """
         handle nested models
         """
         definitions: Dict[str, Any] = {}
-        for model, schema in self.models.items():
+        if category:
+            models = self._models_by_category[category]
+        else:
+            models = self.models
+        for model, schema in models.items():
             if model not in definitions.keys():
                 definitions[model] = schema
             if "definitions" in schema:

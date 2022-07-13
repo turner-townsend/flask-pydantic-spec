@@ -64,6 +64,9 @@ class FlaskPydanticSpec:
             self.register(app)
         self.class_view_api_info = dict()  # class view info when adding validate decorator
         self.class_view_apispec = dict()  # convert class_view_api_info into openapi spec
+        self.routes_by_category = dict()  # routes openapi info by category as key in the dict
+        self._spec_by_category = dict()  # openapi spec by category
+        self._models_by_category = defaultdict(dict)  # model schemas by category
 
     def register(self, app: Flask) -> None:
         """
@@ -122,6 +125,7 @@ class FlaskPydanticSpec:
         before: Optional[Callable] = None,
         after: Optional[Callable] = None,
         publish: bool = False,
+        category: str = "default",
     ) -> Callable:
         """
         - validate query, body, headers in request
@@ -169,6 +173,7 @@ class FlaskPydanticSpec:
                     self.class_view_api_info[view_name][method] = {}
                 summary, desc = parse_comments(func)
                 self.class_view_api_info[view_name][method]["publish"] = publish
+                self.class_view_api_info[view_name][method]["category"] = category
                 self.class_view_api_info[view_name][method]["summary"] = summary
                 self.class_view_api_info[view_name][method]["description"] = desc
                 self.class_view_api_info[view_name][method]["responses"] = {
@@ -304,16 +309,33 @@ class FlaskPydanticSpec:
                         "requestBody", None
                     )
                     publish = self.class_view_apispec[path][method.lower()]["publish"]
+                    category = self.class_view_apispec[path][method.lower()]["category"]
                     if self.config.MODE == "publish_only" and not publish:
                         continue
                 else:
                     # flask function view
                     if self.bypass_unpublish(func):
                         continue
+                    category = getattr(func, "category", "default")
 
                 if path not in routes:
                     routes[path] = dict()
                 routes[path][method.lower()] = {
+                    "summary": summary or f"{name} <{method}>",
+                    "operationId": operation_id,
+                    "description": desc or "",
+                    "tags": func_tag,
+                    "parameters": parameters,
+                    "responses": responses,
+                }
+
+                if category not in self.routes_by_category:
+                    self.routes_by_category[category] = dict()
+
+                if path not in self.routes_by_category[category]:
+                    self.routes_by_category[category][path] = dict()
+
+                self.routes_by_category[category][path][method.lower()] = {
                     "summary": summary or f"{name} <{method}>",
                     "operationId": operation_id,
                     "description": desc or "",
@@ -329,6 +351,9 @@ class FlaskPydanticSpec:
                     routes[path][method.lower()]["requestBody"] = self._parse_request_body(
                         request_body
                     )
+                    self.routes_by_category[category][path][method.lower()][
+                        "requestBody"
+                    ] = self._parse_request_body(request_body)
 
         return self._generate_spec_common(routes)
 

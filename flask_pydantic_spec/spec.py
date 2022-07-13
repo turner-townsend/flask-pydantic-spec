@@ -87,6 +87,20 @@ class FlaskPydanticSpec:
             self._spec = self._generate_spec()
         return self._spec
 
+    def spec_by_category(self, category) -> Mapping[str, Any]:
+        """
+        get OpenAPI spec by category
+        :return:
+        """
+        if not hasattr(self, "_spec"):
+            self._spec = self._generate_spec()
+
+        if category not in self._spec_by_category:
+            self._spec_by_category[category] = self._generate_spec_common(
+                self.routes_by_category[category], category
+            )
+        return self._spec_by_category[category]
+
     def bypass(self, func: Callable) -> bool:
         """
         bypass rules for routes (mode defined in config)

@@ -206,6 +206,9 @@ class FlaskPydanticSpec:
                         _model = model
                     if _model:
                         self.models[_model.__name__] = self._get_open_api_schema(_model.schema())
+                        self._models_by_category[category][
+                            _model.__name__
+                        ] = self._get_open_api_schema(_model.schema())
                     setattr(validation, name, model)
 
                     if class_view:
@@ -234,6 +237,9 @@ class FlaskPydanticSpec:
                     if model:
                         assert not isinstance(model, RequestBase)
                         self.models[model.__name__] = self._get_open_api_schema(model.schema())
+                        self._models_by_category[category][
+                            model.__name__
+                        ] = self._get_open_api_schema(model.schema())
                         if class_view:
                             for k, v in resp.generate_spec().items():
                                 self.class_view_api_info[view_name][method]["responses"][k] = v

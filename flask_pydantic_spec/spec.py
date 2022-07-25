@@ -219,7 +219,7 @@ class FlaskPydanticSpec:
                                     "name": param_name,
                                     "in": name,
                                     "schema": schema,
-                                    "required": name in model_schema.get("required", []),
+                                    "required": param_name in model_schema.get("required", []),
                                 }
                             )
 

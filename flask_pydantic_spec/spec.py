@@ -421,7 +421,16 @@ class FlaskPydanticSpec:
         for key, value in property.items():
             for prop, val in value.items():
                 if prop in allowed_fields:
-                    result[key][prop] = val
+                    # a hack to convert exclusiveMaximum/Minimum to valid openapi spec
+                    # https://github.com/tiangolo/fastapi/issues/240
+                    if prop == "exclusiveMinimum":
+                        result[key][prop] = True
+                        result[key]["minimum"] = val
+                    elif prop == "exclusiveMaximum":
+                        result[key][prop] = True
+                        result[key]["maximum"] = val
+                    else:
+                        result[key][prop] = val
 
         return result
 

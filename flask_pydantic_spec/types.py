@@ -125,6 +125,32 @@ class FileResponse(ResponseBase):
         return responses
 
 
+class HLSResponse(ResponseBase):
+    def __init__(self, content_type: str = "application/octet-stream"):
+        self.content_type = content_type
+
+    def has_model(self) -> bool:
+        """
+        File response cannot have a model
+        """
+        return False
+
+    @property
+    def models(self) -> Iterable[Type[BaseModel]]:
+        return []
+
+    def generate_spec(self) -> Mapping[str, Any]:
+        responses = {
+            "200": {
+                "description": DEFAULT_CODE_DESC["HTTP_200"],
+                "content": {self.content_type: {"schema": {"type": "string", "format": "binary"}}},
+            },
+            "404": {"description": DEFAULT_CODE_DESC["HTTP_404"]},
+        }
+
+        return responses
+
+
 class RequestBase:
     def has_model(self) -> bool:
         ...

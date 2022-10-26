@@ -1,5 +1,5 @@
 import re
-from typing import Optional, Type, Iterable, Mapping, Any, Dict
+from typing import Optional, Type, Iterable, Mapping, Any, Dict, List
 
 from pydantic import BaseModel
 
@@ -124,7 +124,30 @@ class FileResponse(ResponseBase):
 
         return responses
 
-# Test comment
+class HLSFileResponse(ResponseBase):
+    def __init__(self, content_types: List[str] = None):
+        self.content_types = content_types
+    
+    def has_model(self) -> bool:
+        """
+        HLS file response cannot have a model
+        """
+        return False
+
+    @property
+    def models(self) -> Iterable[Type[BaseModel]]:
+        return []
+
+    def generate_spec(self) -> Mapping[str, Any]:
+        responses = {
+            "200": {
+                "description": DEFAULT_CODE_DESC["HTTP_200"],
+                "content": {self.content_types: {"schema": {"type": "string", "format": "binary"}}},
+            },
+            "404": {"description": DEFAULT_CODE_DESC["HTTP_404"]},
+        }
+
+        return responses
 
 class RequestBase:
     def has_model(self) -> bool:

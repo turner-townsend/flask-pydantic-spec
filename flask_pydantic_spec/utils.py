@@ -203,9 +203,13 @@ def parse_multi_dict(input: MultiDict) -> Dict[str, Any]:
     result = {}
     for key, value in input.to_dict(flat=False).items():
         if len(value) == 1:
-            result[key] = value[0]
+            try:
+                value_to_use = json.loads(value[0])
+            except (TypeError, JSONDecodeError):
+                value_to_use = value[0]
         else:
-            result[key] = value
+            value_to_use = value
+        result[key] = value_to_use
     return result
 
 

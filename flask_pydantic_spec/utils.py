@@ -1,11 +1,25 @@
 import inspect
+import json
 import logging
+import re
+from json import JSONDecodeError
 
-from typing import Callable, Mapping, Any, Tuple, Optional, List, Dict
+from typing import (
+    Callable,
+    Mapping,
+    Any,
+    Tuple,
+    Optional,
+    List,
+    Dict,
+    Generator,
+    Iterable,
+)
 
 from werkzeug.datastructures import MultiDict
 from flask import Request as FlaskRequest
 from pydantic import BaseModel
+from werkzeug.routing import Rule
 
 from .types import Response, RequestBase, Request
 
@@ -193,3 +207,53 @@ def parse_multi_dict(input: MultiDict) -> Dict[str, Any]:
         else:
             result[key] = value
     return result
+
+
+RE_PARSE_RULE = re.compile(
+    r"""
+    (?P<static>[^<]*)                           # static rule data
+    <
+    (?:
+        (?P<converter>[a-zA-Z_][a-zA-Z0-9_]*)   # converter name
+        (?:\((?P<args>.*?)\))?                  # converter arguments
+        \:                                      # variable delimiter
+    )?
+    (?P<variable>[a-zA-Z_][a-zA-Z0-9_]*)        # variable name
+    >
+    """,
+    re.VERBOSE,
+)
+
+
+def parse_rule(rule: Rule) -> Iterable[Tuple[Optional[str], Optional[str], str]]:
+    """
+    Parse a rule and return it as generator. Each iteration yields tuples in the form
+    ``(converter, arguments, variable)``.
+    If the converter is `None` it's a static url part, otherwise it's a dynamic one.
+    Note: This originally lived in werkzeug.routing.parse_rule until it was removed in werkzeug 2.2.0.
+    TODO - cgearing - do we really need this?
+    """
+    rule_str = str(rule)
+    pos = 0
+    end = len(rule_str)
+    do_match = RE_PARSE_RULE.match
+    used_names = set()
+    while pos < end:
+        m = do_match(rule_str, pos)
+        if m is None:
+            break
+        data = m.groupdict()
+        if data["static"]:
+            yield None, None, data["static"]
+        variable = data["variable"]
+        converter = data["converter"] or "default"
+        if variable in used_names:
+            raise ValueError(f"variable name {variable!r} used twice.")
+        used_names.add(variable)
+        yield converter, data["args"] or None, variable
+        pos = m.end()
+    if pos < end:
+        remaining = rule_str[pos:]
+        if ">" in remaining or "<" in remaining:
+            raise ValueError(f"malformed url rule: {rule_str!r}")
+        yield None, None, remaining

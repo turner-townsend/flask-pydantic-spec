@@ -16,6 +16,7 @@ from flask import (
     Response as FlaskResponse,
 )
 from werkzeug.datastructures import Headers
+from werkzeug.routing import parse_converter_args
 
 from .config import Config
 from .page import PAGES
@@ -57,7 +58,6 @@ class FlaskBackend:
             yield method, func
 
     def parse_path(self, route: Any) -> Tuple[str, List[Any]]:
-        from werkzeug.routing import parse_rule, parse_converter_args
 
         subs = []
         parameters = []

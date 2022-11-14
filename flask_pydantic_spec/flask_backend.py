@@ -16,11 +16,12 @@ from flask import (
     Response as FlaskResponse,
 )
 from werkzeug.datastructures import Headers
+from werkzeug.routing import Rule, parse_converter_args
 
 from .config import Config
 from .page import PAGES
 from .types import ResponseBase, RequestBase
-from .utils import parse_multi_dict
+from .utils import parse_multi_dict, parse_rule
 
 
 @dataclass
@@ -56,13 +57,12 @@ class FlaskBackend:
         for method in route.methods:
             yield method, func
 
-    def parse_path(self, route: Any) -> Tuple[str, List[Any]]:
-        from werkzeug.routing import parse_rule, parse_converter_args
+    def parse_path(self, route: Rule) -> Tuple[str, List[Any]]:
 
         subs = []
         parameters = []
 
-        for converter, arguments, variable in parse_rule(str(route)):
+        for converter, arguments, variable in parse_rule(route):
             if converter is None:
                 subs.append(variable)
                 continue
@@ -150,7 +150,7 @@ class FlaskBackend:
             else:
                 parsed_body = request.get_json() or {}
         elif request.content_type and "multipart/form-data" in request.content_type:
-            parsed_body = request.form or {}
+            parsed_body = parse_multi_dict(request.form) if request.form else {}
         else:
             parsed_body = request.get_data() or {}
         req_headers: Optional[Headers] = request.headers or None

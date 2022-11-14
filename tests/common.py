@@ -1,3 +1,4 @@
+from datetime import date
 from enum import IntEnum, Enum
 from typing import List, Optional
 
@@ -43,7 +44,7 @@ class Language(str, Enum):
 class Headers(BaseModel):
     lang: Language
 
-    @root_validator(pre=True)
+    @root_validator(pre=True, allow_reuse=True)
     def lower_keys(cls, values):
         return {key.lower(): value for key, value in values.items()}
 
@@ -58,8 +59,14 @@ class DemoModel(BaseModel):
     name: str
 
 
+class FileMetadata(BaseModel):
+    type: str
+    created_at: date
+
+
 class FileName(BaseModel):
     file_name: str
+    data: FileMetadata
 
 
 def get_paths(spec):

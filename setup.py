@@ -14,7 +14,7 @@ with open(path.join(here, "requirements/production.txt"), encoding="utf-8") as f
 
 setup(
     name="flask_pydantic_spec",
-    version="0.3.1",
+    version="0.4.0",
     author="Chris Gearing, Simon Hayward, Rob Young, Donald Fleming, Saurabh Jha",
     author_email="chris.gearing@turntown.digital",
     description=(
@@ -36,7 +36,7 @@ setup(
         "Operating System :: OS Independent",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     install_requires=requires,
     extras_require={
         "flask": ["flask"],

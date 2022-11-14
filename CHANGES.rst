@@ -1,4 +1,12 @@
 .. currentmodule:: flask-pydantic-spec
+VERSION 0.4.0
+-------------
+
+Release 2022-11-14
+
+- Add ability to parse nested multipart form requests with JSON strings under keys
+- Drop support for Python 3.6
+
 VERSION 0.3.1
 -------------
 

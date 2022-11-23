@@ -50,10 +50,7 @@ class FlaskBackend:
 
     def find_routes(self) -> Any:
         for rule in self.app.url_map.iter_rules():
-            if any(
-                str(rule).startswith(path)
-                for path in (f"/{self.config.PATH}", "/static")
-            ):
+            if any(str(rule).startswith(path) for path in (f"/{self.config.PATH}", "/static")):
                 continue
             yield rule
 
@@ -153,9 +150,7 @@ class FlaskBackend:
             req_query = {}
         if request.content_type and "application/json" in request.content_type:
             if request.content_encoding and "gzip" in request.content_encoding:
-                raw_body = gzip.decompress(request.stream.read()).decode(
-                    encoding="utf-8"
-                )
+                raw_body = gzip.decompress(request.stream.read()).decode(encoding="utf-8")
                 parsed_body = json.loads(raw_body)
             else:
                 parsed_body = request.get_json() or {}
@@ -196,9 +191,7 @@ class FlaskBackend:
             self.request_validation(request, query, body, headers, cookies)
         except ValidationError as err:
             req_validation_error = err
-            response = make_response(
-                jsonify(err.errors()), self.config.VALIDATION_ERROR_CODE
-            )
+            response = make_response(jsonify(err.errors()), self.config.VALIDATION_ERROR_CODE)
 
         before(request, response, req_validation_error, None)
         if req_validation_error:
@@ -213,9 +206,7 @@ class FlaskBackend:
                     model.validate(response.get_json())
                 except ValidationError as err:
                     resp_validation_error = err
-                    response = make_response(
-                        jsonify({"message": "response validation error"}), 500
-                    )
+                    response = make_response(jsonify({"message": "response validation error"}), 500)
 
         after(request, response, resp_validation_error, None)
 

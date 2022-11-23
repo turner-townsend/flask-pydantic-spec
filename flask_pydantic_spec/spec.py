@@ -153,18 +153,14 @@ class FlaskPydanticSpec:
                     else:
                         _model = model
                     if _model:
-                        self.models[_model.__name__] = get_open_api_schema(
-                            _model.schema()
-                        )
+                        self.models[_model.__name__] = get_open_api_schema(_model.schema())
                     setattr(validation, name, model)
 
             if resp:
                 for model in resp.models:
                     if model:
                         assert not isinstance(model, RequestBase)
-                        self.models[model.__name__] = get_open_api_schema(
-                            model.schema()
-                        )
+                        self.models[model.__name__] = get_open_api_schema(model.schema())
                 setattr(validation, "resp", resp)
 
             if tags:
@@ -240,9 +236,7 @@ class FlaskPydanticSpec:
                         for schema in model.values():  # type: ignore
                             current_path[method_key]["parameters"].extend(schema)
                 if body:
-                    routes[path][method_key]["requestBody"] = self._parse_request_body(
-                        body
-                    )
+                    routes[path][method_key]["requestBody"] = self._parse_request_body(body)
 
                 if hasattr(func, "deprecated"):
                     routes[path][method_key]["deprecated"] = True

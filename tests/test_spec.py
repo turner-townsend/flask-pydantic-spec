@@ -8,7 +8,11 @@ from openapi_spec_validator import validate_spec, openapi_v30_spec_validator
 from pydantic import BaseModel, StrictFloat, Field
 
 from flask_pydantic_spec import Response
-from flask_pydantic_spec.types import FileResponse, Request, MultipartFormRequest
+from flask_pydantic_spec.types import (
+    FileResponse,
+    Request,
+    MultipartFormRequest,
+)
 from flask_pydantic_spec import FlaskPydanticSpec
 from flask_pydantic_spec.config import Config
 
@@ -137,7 +141,10 @@ def app(api: api) -> Flask:
         pass
 
     @_app.post("/multipart-file")
-    @api.validate(body=MultipartFormRequest(ExampleModel), resp=Response(HTTP_200=ExampleModel))
+    @api.validate(
+        body=MultipartFormRequest(ExampleModel),
+        resp=Response(HTTP_200=ExampleModel),
+    )
     def post_multipart_form():
         pass
 

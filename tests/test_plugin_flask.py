@@ -84,7 +84,10 @@ def user_score(name):
 
 
 @app.route("/api/group/<name>", methods=["GET"])
-@api.validate(resp=Response(HTTP_200=Resp, HTTP_401=None, validate=False), tags=["api", "test"])
+@api.validate(
+    resp=Response(HTTP_200=Resp, HTTP_401=None, validate=False),
+    tags=["api", "test"],
+)
 def group_score(name):
     score = ["a", "b", "c", "d", "e"]
     return jsonify(name=name, score=score)
@@ -249,4 +252,10 @@ def test_flask_post_gzip_failure(client):
         },
     )
     assert resp.status_code == 400
-    assert resp.json == [{"loc": ["limit"], "msg": "field required", "type": "value_error.missing"}]
+    assert resp.json == [
+        {
+            "loc": ["limit"],
+            "msg": "field required",
+            "type": "value_error.missing",
+        }
+    ]

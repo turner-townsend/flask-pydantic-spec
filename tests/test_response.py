@@ -44,8 +44,7 @@ def test_response_spec():
     assert spec["200"]["description"] == DEFAULT_CODE_DESC["HTTP_200"]
     assert spec["201"]["description"] == DEFAULT_CODE_DESC["HTTP_201"]
     assert (
-        spec["201"]["content"]["application/json"]["schema"]["$ref"].split("/")[-1]
-        == "DemoModel"
+        spec["201"]["content"]["application/json"]["schema"]["$ref"].split("/")[-1] == "DemoModel"
     )
 
     assert spec.get(200) is None
@@ -58,13 +57,8 @@ def test_file_response_spec():
     assert spec["200"]["description"] == DEFAULT_CODE_DESC["HTTP_200"]
     assert spec["404"]["description"] == DEFAULT_CODE_DESC["HTTP_404"]
 
-    assert (
-        spec["200"]["content"]["application/octet-stream"]["schema"]["format"]
-        == "binary"
-    )
-    assert (
-        spec["200"]["content"]["application/octet-stream"]["schema"]["type"] == "string"
-    )
+    assert spec["200"]["content"]["application/octet-stream"]["schema"]["format"] == "binary"
+    assert spec["200"]["content"]["application/octet-stream"]["schema"]["type"] == "string"
 
     pdf_resp = FileResponse("application/pdf")
     pdf_spec = pdf_resp.generate_spec()

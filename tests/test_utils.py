@@ -74,9 +74,7 @@ def test_has_model():
 
 def test_parse_resp():
     assert parse_resp(undecorated_func, 422) == {}
-    assert parse_resp(demo_class.demo_method, 422) == {
-        "422": {"description": "Validation Error"}
-    }
+    assert parse_resp(demo_class.demo_method, 422) == {"422": {"description": "Validation Error"}}
     resp_spec = parse_resp(demo_func, 422)
     assert resp_spec["422"]["description"] == "Validation Error"
     assert (
@@ -98,9 +96,9 @@ def test_parse_request():
 
 
 def test_parse_params():
-    models = {"DemoModel": DemoModel.schema()}
-    assert parse_params(demo_func, [], models) == []
-    params = parse_params(demo_class.demo_method, [], models)
+    assert not parse_params(demo_func)
+    model = parse_params(demo_class.demo_method)["query"]
+    params = list(model.values())[0]
     assert len(params) == 3
     assert params[0] == {
         "name": "uid",

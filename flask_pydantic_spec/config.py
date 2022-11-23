@@ -3,16 +3,25 @@ from typing import Set, Optional, Dict, Any, Mapping, List
 
 
 class Config:
-    """
-    :ivar MODE: mode for route. **normal** includes undecorated routes and
-        routes decorated by this instance. **strict** only includes routes
-        decorated by this instance. **greedy** includes all the routes.
-    :ivar PATH: path for API document page
-    :ivar OPENAPI_VERSION: OpenAPI version
-    :ivar TITLE: service name
-    :ivar VERSION: service version
-    :ivar DOMAIN: service host domain
-    :ivar VALIDATION_ERROR_CODE: code for validation error responses
+    """Class for configuring Flask-Pydantic-Spec.
+
+    To customise the behaviour of Flask-Pydantic-Spec, you can override the defaults by passing in arguments here
+
+    Args:
+        PATH: The location you would like the OpenAPI documentation available on - defaults to 'apidoc'
+        FILENAME: The name of the generated OpenAPI documentation - defaults to 'openapi.json'
+        OPENAPI_VERSION: The version of OpenAPI you want to generate - defaults to '3.0.3'
+        UI: Which OpenAPI doc explorer you would like to use - either 'redoc' or 'swagger'
+        MODE: Defines how Flask-Pydantic-Spec will gather routes and models for including in the OpenAPI spec.
+        INLINE_DEFINITIONS: Whether or not to generate query/body arguments inline or as reference objects - defaults
+            to True.
+        VALIDATION_ERROR_CODE: What error code you would like to return when Pydantic validation fails - defaults to
+            422.
+        TITLE: The title of your OpenAPI document - defaults to 'Service API Document'
+        VERSION: The version of your OpenAPI spec.
+        DOMAIN: Optional location of the API your OpenAPI documentation refers to
+        INFO: Extra information to insert into your OpenAPI document.
+        TAGS: A list of mapping of tag name to tag description for your OpenAPI document.
     """
 
     def __init__(self, **kwargs: Dict[str, Any]) -> None:
@@ -22,6 +31,7 @@ class Config:
         self.UI: str = "redoc"
         self._SUPPORT_UI: Set[str] = {"redoc", "swagger"}
         self.MODE: str = "normal"
+        self.INLINE_DEFINITIONS: bool = True
         self._SUPPORT_MODE: Set[str] = {"normal", "strict", "greedy"}
         self.VALIDATION_ERROR_CODE: int = 422
 

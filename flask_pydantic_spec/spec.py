@@ -1,11 +1,9 @@
-from collections import defaultdict
 from functools import wraps
-from typing import Mapping, Optional, Type, Union, Callable, Iterable, Any, Dict, cast
+from typing import Mapping, Optional, Type, Union, Callable, Iterable, Any, Dict
 
 from flask import Flask, Response as FlaskResponse
 from pydantic import BaseModel
 from inflection import camelize
-from nested_lookup import nested_alter
 
 from . import Request
 from .config import Config
@@ -19,13 +17,8 @@ from .utils import (
     parse_name,
     default_before_handler,
     default_after_handler,
+    get_open_api_schema,
 )
-
-
-def _move_schema_reference(reference: str) -> str:
-    if "/definitions" in reference:
-        return f"#/components/schemas/{reference.split('/definitions/')[-1]}"
-    return reference
 
 
 class FlaskPydanticSpec:
@@ -151,7 +144,8 @@ class FlaskPydanticSpec:
 
             # register
             for name, model in zip(
-                ("query", "body", "headers", "cookies"), (query, body, headers, cookies)
+                ("query", "body", "headers", "cookies"),
+                (query, body, headers, cookies),
             ):
                 if model is not None:
                     if hasattr(model, "model"):
@@ -159,7 +153,7 @@ class FlaskPydanticSpec:
                     else:
                         _model = model
                     if _model:
-                        self.models[_model.__name__] = self._get_open_api_schema(
+                        self.models[_model.__name__] = get_open_api_schema(
                             _model.schema()
                         )
                     setattr(validation, name, model)
@@ -168,7 +162,7 @@ class FlaskPydanticSpec:
                 for model in resp.models:
                     if model:
                         assert not isinstance(model, RequestBase)
-                        self.models[model.__name__] = self._get_open_api_schema(
+                        self.models[model.__name__] = get_open_api_schema(
                             model.schema()
                         )
                 setattr(validation, "resp", resp)
@@ -192,6 +186,8 @@ class FlaskPydanticSpec:
         tag_lookup = {tag["name"]: tag for tag in self.config.TAGS}
         routes: Dict[str, Any] = {}
         tags: Dict[str, Any] = {}
+        param_objects: Dict[str, Any] = {}
+
         for route in self.backend.find_routes():
             path, parameters = self.backend.parse_path(route)
             routes[path] = routes.get(path, {})
@@ -206,23 +202,50 @@ class FlaskPydanticSpec:
                     if tag not in tags:
                         tags[tag] = tag_lookup.get(tag, {"name": tag})
 
-                routes[path][method.lower()] = {
+                params = parse_params(func, self.config.INLINE_DEFINITIONS)
+                responses = parse_resp(func, self.config.VALIDATION_ERROR_CODE)
+                body = parse_request(func)
+
+                if not any([params, responses, body]):
+                    raise ValueError(
+                        f"No definitions in OpenAPI spec for route '{name} <{method}>'"
+                    )
+
+                current_path = routes[path]
+                method_key = method.lower()
+
+                current_path[method_key] = {
                     "summary": summary or f"{name} <{method}>",
                     "operationId": camelize(f"{name}", False),
                     "description": desc or "",
                     "tags": getattr(func, "tags", []),
-                    "parameters": parse_params(func, parameters[:], self.models),
-                    "responses": parse_resp(func, self.config.VALIDATION_ERROR_CODE),
+                    "responses": responses,
+                    "parameters": [],
                 }
+                if not self.config.INLINE_DEFINITIONS:
+                    current_path[method_key]["parameters"] = [
+                        {"$ref": f"#/components/parameters/{model_name}"}
+                        for location in params.values()
+                        for model_name in location
+                    ]
+                    param_objects.update(
+                        {
+                            model_name: schema
+                            for param in params.values()
+                            for model_name, schema in param.items()  # type: ignore
+                        }
+                    )
+                else:
+                    for location, model in params.items():
+                        for schema in model.values():  # type: ignore
+                            current_path[method_key]["parameters"].extend(schema)
+                if body:
+                    routes[path][method_key]["requestBody"] = self._parse_request_body(
+                        body
+                    )
+
                 if hasattr(func, "deprecated"):
-                    routes[path][method.lower()]["deprecated"] = True
-
-                request_body = parse_request(func)
-                if request_body:
-                    routes[path][method.lower()][
-                        "requestBody"
-                    ] = self._parse_request_body(request_body)
-
+                    routes[path][method_key]["deprecated"] = True
         spec = {
             "openapi": self.config.OPENAPI_VERSION,
             "info": {
@@ -236,69 +259,9 @@ class FlaskPydanticSpec:
             "paths": {**routes},
             "components": {"schemas": {**self._get_model_definitions()}},
         }
+        if not self.config.INLINE_DEFINITIONS:
+            spec["components"]["parameters"] = param_objects  # type: ignore
         return spec
-
-    def _validate_property(self, property: Mapping[str, Any]) -> Dict[str, Any]:
-        allowed_fields = {
-            "title",
-            "multipleOf",
-            "maximum",
-            "exclusiveMaximum",
-            "minimum",
-            "exclusiveMinimum",
-            "maxLength",
-            "minLength",
-            "pattern",
-            "maxItems",
-            "minItems",
-            "uniqueItems",
-            "maxProperties",
-            "minProperties",
-            "required",
-            "enum",
-            "type",
-            "allOf",
-            "anyOf",
-            "oneOf",
-            "not",
-            "items",
-            "properties",
-            "additionalProperties",
-            "description",
-            "format",
-            "default",
-            "nullable",
-            "discriminator",
-            "readOnly",
-            "writeOnly",
-            "xml",
-            "externalDocs",
-            "example",
-            "deprecated",
-            "$ref",
-        }
-        result: Dict[str, Any] = defaultdict(dict)
-
-        for key, value in property.items():
-            for prop, val in value.items():
-                if prop in allowed_fields:
-                    result[key][prop] = val
-
-        return result
-
-    def _get_open_api_schema(self, schema: Mapping[str, Any]) -> Mapping[str, Any]:
-        """
-        Convert a Pydantic model into an OpenAPI compliant schema object.
-        """
-        result = {}
-        for key, value in schema.items():
-            if key == "properties":
-                result[key] = self._validate_property(value)
-            else:
-                result[key] = value
-        return cast(
-            Mapping[str, Any], nested_alter(result, "$ref", _move_schema_reference)
-        )
 
     def _get_model_definitions(self) -> Dict[str, Any]:
         """
@@ -310,7 +273,7 @@ class FlaskPydanticSpec:
                 definitions[model] = schema
             if "definitions" in schema:
                 for key, value in schema["definitions"].items():
-                    definitions[key] = self._get_open_api_schema(value)
+                    definitions[key] = get_open_api_schema(value)
                 del schema["definitions"]
 
         return definitions
@@ -326,8 +289,6 @@ class FlaskPydanticSpec:
         schema = request_body["content"][content_type]["schema"]
         if "$ref" not in schema.keys():
             # handle inline schema definitions
-            return {
-                "content": {content_type: {"schema": self._get_open_api_schema(schema)}}
-            }
+            return {"content": {content_type: {"schema": get_open_api_schema(schema)}}}
         else:
             return request_body

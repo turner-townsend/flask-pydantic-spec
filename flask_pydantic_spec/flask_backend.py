@@ -2,7 +2,17 @@ import gzip
 import json
 import logging
 
-from typing import Optional, Mapping, Callable, Any, Tuple, List, Type, Iterable, Dict
+from typing import (
+    Optional,
+    Mapping,
+    Callable,
+    Any,
+    Tuple,
+    List,
+    Type,
+    Iterable,
+    Dict,
+)
 from dataclasses import dataclass
 
 from pydantic import ValidationError, BaseModel

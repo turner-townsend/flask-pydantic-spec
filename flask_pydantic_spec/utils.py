@@ -2,6 +2,7 @@ import inspect
 import json
 import logging
 import re
+from collections import defaultdict
 from json import JSONDecodeError
 
 from typing import (
@@ -12,18 +13,92 @@ from typing import (
     Optional,
     List,
     Dict,
-    Generator,
     Iterable,
+    Type,
+    cast,
+    Union,
 )
 
+from nested_lookup import nested_alter
 from werkzeug.datastructures import MultiDict
-from flask import Request as FlaskRequest
 from pydantic import BaseModel
 from werkzeug.routing import Rule
 
 from .types import Response, RequestBase, Request
 
 logger = logging.getLogger(__name__)
+
+
+def _move_schema_reference(reference: str) -> str:
+    if "/definitions" in reference:
+        return f"#/components/schemas/{reference.split('/definitions/')[-1]}"
+    return reference
+
+
+def _get_ref(model: Type[BaseModel]) -> Mapping[str, Any]:
+    return {"$ref": f"#/components/schemas/{model.__name__}"}
+
+
+def _validate_property(property: Mapping[str, Any]) -> Dict[str, Any]:
+    allowed_fields = {
+        "title",
+        "multipleOf",
+        "maximum",
+        "exclusiveMaximum",
+        "minimum",
+        "exclusiveMinimum",
+        "maxLength",
+        "minLength",
+        "pattern",
+        "maxItems",
+        "minItems",
+        "uniqueItems",
+        "maxProperties",
+        "minProperties",
+        "required",
+        "enum",
+        "type",
+        "allOf",
+        "anyOf",
+        "oneOf",
+        "not",
+        "items",
+        "properties",
+        "additionalProperties",
+        "description",
+        "format",
+        "default",
+        "nullable",
+        "discriminator",
+        "readOnly",
+        "writeOnly",
+        "xml",
+        "externalDocs",
+        "example",
+        "deprecated",
+        "$ref",
+    }
+    result: Dict[str, Any] = defaultdict(dict)
+
+    for key, value in property.items():
+        for prop, val in value.items():
+            if prop in allowed_fields:
+                result[key][prop] = val
+
+    return result
+
+
+def get_open_api_schema(schema: Mapping[str, Any]) -> Mapping[str, Any]:
+    """
+    Convert a Pydantic model into an OpenAPI compliant schema object.
+    """
+    result = {}
+    for key, value in schema.items():
+        if key == "properties":
+            result[key] = _validate_property(value)
+        else:
+            result[key] = value
+    return cast(Mapping[str, Any], nested_alter(result, "$ref", _move_schema_reference))
 
 
 def parse_comments(func: Callable) -> Tuple[Optional[str], Optional[str]]:
@@ -58,57 +133,51 @@ def parse_request(func: Callable) -> Mapping[str, Any]:
     return {}
 
 
+def _get_param(
+    model: Type[BaseModel], key: str, inline: bool
+) -> Union[List[Mapping[str, Any]], Mapping[str, Any]]:
+    """
+    Parses a model as a parameter object, either as an inlined parameter object (where the schema is defined within
+    the operation) or as a reference to the Parameter in the Spec, which will reference the Schema for the Parameter.
+    """
+    model_schema = get_open_api_schema(model.schema())
+    if not inline:
+        return {
+            "name": model_schema["title"],
+            "in": key,
+            "schema": _get_ref(model),
+        }
+    return [
+        {
+            "name": name,
+            "in": key,
+            "schema": schema,
+            "required": name in model_schema.get("required", {}),
+        }
+        for name, schema in model_schema["properties"].items()
+    ]
+
+
 def parse_params(
-    func: Callable,
-    params: List[Mapping[str, Any]],
-    models: Mapping[str, Any],
-) -> List[Mapping[str, Any]]:
+    func: Callable, inline: bool = True
+) -> Mapping[str, Union[List[Mapping[str, Any]], Mapping[str, Any]]]:
     """
     get spec for (query, headers, cookies)
     """
+    result = {}
     if hasattr(func, "query"):
-        model_name = getattr(func, "query").__name__
-        query = models.get(model_name)
-        if query is not None:
-            for name, schema in query["properties"].items():
-                params.append(
-                    {
-                        "name": name,
-                        "in": "query",
-                        "schema": schema,
-                        "required": name in query.get("required", []),
-                    }
-                )
+        model = getattr(func, "query")
+        result["query"] = {model.__name__: _get_param(model, "query", inline)}
 
     if hasattr(func, "headers"):
-        model_name = getattr(func, "headers").__name__
-        headers = models.get(model_name)
-        if headers is not None:
-            for name, schema in headers["properties"].items():
-                params.append(
-                    {
-                        "name": name,
-                        "in": "header",
-                        "schema": schema,
-                        "required": name in headers.get("required", []),
-                    }
-                )
+        model = getattr(func, "headers")
+        result["headers"] = {model.__name__: _get_param(model, "header", inline)}
 
     if hasattr(func, "cookies"):
-        model_name = getattr(func, "cookies").__name__
-        cookies = models.get(model_name)
-        if cookies is not None:
-            for name, schema in cookies["properties"].items():
-                params.append(
-                    {
-                        "name": name,
-                        "in": "cookie",
-                        "schema": schema,
-                        "required": name in cookies.get("required", []),
-                    }
-                )
+        model = getattr(func, "cookies")
+        result["cookies"] = {model.__name__: _get_param(model, "cookie", inline)}
 
-    return params
+    return result
 
 
 def parse_resp(func: Callable, code: int) -> Mapping[str, Mapping[str, Any]]:
@@ -116,7 +185,7 @@ def parse_resp(func: Callable, code: int) -> Mapping[str, Mapping[str, Any]]:
     get the response spec
 
     If this function does not have explicit ``resp`` but have other models,
-    a ``Validation Error`` will be append to the response spec. Since
+    a ``Validation Error`` will be appended to the response spec. Since
     this may be triggered in the validation step.
     """
     responses: Dict[str, Any] = {}
@@ -178,7 +247,10 @@ def default_before_handler(
 
 
 def default_after_handler(
-    req: Request, resp: Response, resp_validation_error: Any, instance: BaseModel
+    req: Request,
+    resp: Response,
+    resp_validation_error: Any,
+    instance: BaseModel,
 ) -> None:
     """
     default handler called after the response validation
@@ -229,7 +301,9 @@ RE_PARSE_RULE = re.compile(
 )
 
 
-def parse_rule(rule: Rule) -> Iterable[Tuple[Optional[str], Optional[str], str]]:
+def parse_rule(
+    rule: Rule,
+) -> Iterable[Tuple[Optional[str], Optional[str], str]]:
     """
     Parse a rule and return it as generator. Each iteration yields tuples in the form
     ``(converter, arguments, variable)``.

@@ -4,11 +4,10 @@ from typing import Optional
 import pytest
 from flask import Flask
 from typing import List
-from openapi_spec_validator import validate_v3_spec
+from openapi_spec_validator import validate_spec, openapi_v30_spec_validator
 from pydantic import BaseModel, StrictFloat, Field
 
 from flask_pydantic_spec import Response
-from flask_pydantic_spec.flask_backend import FlaskBackend
 from flask_pydantic_spec.types import FileResponse, Request, MultipartFormRequest
 from flask_pydantic_spec import FlaskPydanticSpec
 from flask_pydantic_spec.config import Config
@@ -81,34 +80,35 @@ def test_spec_generate(name, app):
     assert spec["tags"] == []
 
 
-api = FlaskPydanticSpec(
-    "flask",
-    tags=[{"name": "lone", "description": "a lone api"}],
-    validation_error_code=400,
-)
-api_strict = FlaskPydanticSpec("flask", mode="strict")
-api_greedy = FlaskPydanticSpec("flask", mode="greedy")
-api_customize_backend = FlaskPydanticSpec(backend=FlaskBackend)
+@pytest.fixture
+def api() -> FlaskPydanticSpec:
+    return FlaskPydanticSpec(
+        "flask",
+        tags=[{"name": "lone", "description": "a lone api"}],
+        validation_error_code=400,
+    )
 
 
-def create_app():
-    app = Flask(__name__)
+@pytest.fixture
+def api_strict() -> FlaskPydanticSpec:
+    return FlaskPydanticSpec("flask", mode="strict")
 
-    @app.route("/foo")
-    @api.validate()
-    def foo():
-        pass
 
-    @app.route("/bar")
-    @api_strict.validate()
-    def bar():
-        pass
+@pytest.fixture
+def api_greedy() -> FlaskPydanticSpec:
+    return FlaskPydanticSpec("flask", mode="greedy")
 
-    @app.route("/lone", methods=["GET"])
+
+@pytest.fixture
+def app(api: api) -> Flask:
+    _app = Flask(__name__)
+
+    @_app.get("/lone")
+    @api.validate(resp=Response(HTTP_200=ExampleNestedList))
     def lone_get():
         pass
 
-    @app.route("/lone", methods=["POST"])
+    @_app.post("/lone")
     @api.validate(
         body=Request(ExampleModel),
         resp=Response(HTTP_200=ExampleNestedList, HTTP_400=ExampleNestedModel),
@@ -118,17 +118,17 @@ def create_app():
     def lone_post():
         pass
 
-    @app.route("/query", methods=["GET"])
+    @_app.get("/query")
     @api.validate(query=ExampleQuery)
     def get_query():
         pass
 
-    @app.route("/file")
+    @_app.get("/file")
     @api.validate(resp=FileResponse())
     def get_file():
         pass
 
-    @app.route("/file", methods=["POST"])
+    @_app.post("/file")
     @api.validate(
         body=Request(content_type="application/octet-stream"),
         resp=Response(HTTP_200=None),
@@ -136,55 +136,40 @@ def create_app():
     def post_file():
         pass
 
-    @app.route("/multipart-file", methods=["POST"])
-    @api.validate(
-        body=MultipartFormRequest(ExampleModel), resp=Response(HTTP_200=ExampleModel)
-    )
+    @_app.post("/multipart-file")
+    @api.validate(body=MultipartFormRequest(ExampleModel), resp=Response(HTTP_200=ExampleModel))
     def post_multipart_form():
         pass
 
-    return app
+    return _app
 
 
-def test_spec_bypass_mode():
-    app = create_app()
+def test_spec_paths(app: Flask, api: FlaskPydanticSpec) -> None:
     api.register(app)
     assert get_paths(api.spec) == [
         "/file",
-        "/foo",
         "/lone",
         "/multipart-file",
         "/query",
     ]
 
-    app = create_app()
-    api_customize_backend.register(app)
-    assert get_paths(api.spec) == [
-        "/file",
-        "/foo",
-        "/lone",
-        "/multipart-file",
-        "/query",
-    ]
 
-    app = create_app()
+def test_api_greedy(app: Flask, api_greedy: FlaskPydanticSpec) -> None:
     api_greedy.register(app)
     assert get_paths(api_greedy.spec) == [
-        "/bar",
         "/file",
-        "/foo",
         "/lone",
         "/multipart-file",
         "/query",
     ]
 
-    app = create_app()
+
+def test_api_strict(app: Flask, api_strict: FlaskPydanticSpec) -> None:
     api_strict.register(app)
-    assert get_paths(api_strict.spec) == ["/bar"]
+    assert get_paths(api_strict.spec) == []
 
 
-def test_two_endpoints_with_the_same_path():
-    app = create_app()
+def test_two_endpoints_with_the_same_path(app: Flask, api: FlaskPydanticSpec) -> None:
     api.register(app)
     spec = api.spec
 
@@ -193,15 +178,14 @@ def test_two_endpoints_with_the_same_path():
     assert http_methods == ["get", "post"]
 
 
-def test_valid_openapi_spec():
-    app = create_app()
+def test_valid_openapi_spec(app: Flask, api: FlaskPydanticSpec) -> None:
     api.register(app)
     spec = api.spec
-    validate_v3_spec(spec)
+
+    validate_spec(spec, validator=openapi_v30_spec_validator)
 
 
-def test_openapi_tags():
-    app = create_app()
+def test_openapi_tags(app: Flask, api: FlaskPydanticSpec) -> None:
     api.register(app)
     spec = api.spec
 
@@ -209,10 +193,29 @@ def test_openapi_tags():
     assert spec["tags"][0]["description"] == "a lone api"
 
 
-def test_openapi_deprecated():
-    app = create_app()
+def test_openapi_deprecated(app: Flask, api: FlaskPydanticSpec) -> None:
     api.register(app)
     spec = api.spec
 
     assert spec["paths"]["/lone"]["post"]["deprecated"] == True
     assert "deprecated" not in spec["paths"]["/lone"]["get"]
+
+
+def test_query_as_reference(app: Flask, api: FlaskPydanticSpec) -> None:
+    api.register(app)
+    api.config.INLINE_DEFINITIONS = False
+    spec = api.spec
+    assert spec["paths"]["/query"]["get"]["parameters"][0] == {
+        "$ref": "#/components/parameters/ExampleQuery"
+    }
+    assert spec["components"]["parameters"]["ExampleQuery"]["schema"] == {
+        "$ref": "#/components/schemas/ExampleQuery"
+    }
+    assert spec["components"]["schemas"]["ExampleQuery"] is not None
+
+
+def test_valid_spec_with_all_references(app: Flask, api: FlaskPydanticSpec) -> None:
+    api.register(app)
+    api.config.INLINE_DEFINITIONS = False
+
+    validate_spec(api.spec, validator=openapi_v30_spec_validator)

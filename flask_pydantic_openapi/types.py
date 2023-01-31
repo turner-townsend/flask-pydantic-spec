@@ -10,17 +10,17 @@ class ResponseBase:
     """
 
     def has_model(self) -> bool:
-        raise NotImplemented
+        raise NotImplementedError
 
     def find_model(self, code: int) -> Optional[Type[BaseModel]]:
-        raise NotImplemented
+        raise NotImplementedError
 
     @property
     def models(self) -> Iterable[Type[BaseModel]]:
-        raise NotImplemented
+        raise NotImplementedError
 
     def generate_spec(self) -> Mapping[str, Any]:
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class Response(ResponseBase):
@@ -131,10 +131,10 @@ class FileResponse(ResponseBase):
 
 class RequestBase:
     def has_model(self) -> bool:
-        raise NotImplemented
+        raise NotImplementedError
 
     def generate_spec(self) -> Mapping[str, Any]:
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class Request(RequestBase):

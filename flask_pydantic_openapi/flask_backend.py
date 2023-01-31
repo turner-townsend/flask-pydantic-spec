@@ -203,9 +203,7 @@ class FlaskBackend:
                     model.validate(response.get_json())
                 except ValidationError as err:
                     resp_validation_error = err
-                    response = make_response(
-                        jsonify(str(resp_validation_error)), 500
-                    )
+                    response = make_response(jsonify(str(resp_validation_error)), 500)
 
         after(request, response, resp_validation_error, None)
 

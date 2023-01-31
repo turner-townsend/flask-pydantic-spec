@@ -1,5 +1,5 @@
 .. currentmodule:: flask-pydantic-openapi
-VERSION 0.3.2
+VERSION 0.4.2
 -------------
 
 Release 2023-01-31
@@ -8,7 +8,7 @@ Release 2023-01-31
 - Add ability to hide openapi docs
 
 
-VERSION 0.4.2
+VERSION 0.4.1
 -------------
 
 Release 2022-11-14

@@ -1,6 +1,6 @@
 import pytest
 
-from flask_pydantic_spec.types import (
+from flask_pydantic_openapi.types import (
     DEFAULT_CODE_DESC,
     Response,
     FileResponse,

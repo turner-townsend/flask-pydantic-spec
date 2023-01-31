@@ -7,8 +7,8 @@ import json
 from flask import Flask, jsonify, request
 from werkzeug.datastructures import FileStorage
 
-from flask_pydantic_spec.types import Response, MultipartFormRequest
-from flask_pydantic_spec import FlaskPydanticSpec
+from flask_pydantic_openapi.types import Response, MultipartFormRequest
+from flask_pydantic_openapi import FlaskPydanticOpenapi
 
 from .common import (
     Query,
@@ -36,7 +36,7 @@ def api_after_handler(req, resp, err, _):
     resp.headers["X-API"] = "OK"
 
 
-api = FlaskPydanticSpec(
+api = FlaskPydanticOpenapi(
     "flask", before=before_handler, after=after_handler, title="Test API"
 )
 app = Flask(__name__)

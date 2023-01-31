@@ -1,8 +1,8 @@
-# Flask Pydantic Spec
+# Flask Pydantic Openapi
 
 A library to make it easy to add OpenAPI documentation to your Flask app, and validate the requests using [Pydantic](https://github.com/samuelcolvin/pydantic/).
 
-This library began as a fork of [Spectree](https://github.com/0b01001001/spectree), but as we made changes we thought 
+This library began as a fork of [Flask-Pydantic-Spec](https://github.com/turner-townsend/flask-pydantic-spec), but as we made changes we thought 
 other people might be interested in our approach.
 
 ## Features
@@ -14,7 +14,7 @@ other people might be interested in our approach.
 
 ## Quick Start
 
-install with pip: `pip install flask-pydantic-spec`
+install with pip: `pip install flask-pydantic-openapi`
 
 ### Examples
 
@@ -26,7 +26,7 @@ Check the [examples](/examples) folder.
 ### Step by Step
 
 1. Define your data structure used in (query, json, headers, cookies, resp) with `pydantic.BaseModel`
-2. create `flask_pydantic_spec.Validator` instance with the web framework name you are using, like `api = Validator('flask')`
+2. create `flask_pydantic_openapi.Validator` instance with the web framework name you are using, like `api = Validator('flask')`
 3. `api.validate` decorate the route with
    * `query`
    * `body`
@@ -58,8 +58,8 @@ Of course. Check the [config](https://flask-pydantic-spec.readthedocs.io/en/late
 You can update the config when you init the validator like: 
 
 ```py
-from flask_pydantic_spec import FlaskPydanticSpec
-FlaskPydanticSpec("flask", title="Demo API", version="v1.0", path="doc")
+from flask_pydantic_openapi import FlaskPydanticOpenapi
+FlaskPydanticOpenapi("flask", title="Demo API", version="v1.0", path="doc")
 ```
 
 > What is a `Response` and how to use it?
@@ -67,7 +67,7 @@ FlaskPydanticSpec("flask", title="Demo API", version="v1.0", path="doc")
 To build a response for the endpoint, you need to declare the status code with format `HTTP_{code}` and corresponding data (optional).
 
 ```py
-from flask_pydantic_spec import Response
+from flask_pydantic_openapi import Response
 Response(HTTP_200=None, HTTP_403=ForbidModel)
 Response('HTTP_200') # equals to Response(HTTP_200=None)
 ```
@@ -93,7 +93,7 @@ Try it with `http post :8000/api/user name=alice age=18`. (if you are using `htt
 ```py
 from flask import Flask, request, jsonify
 from pydantic import BaseModel, Field, constr
-from flask_pydantic_spec import FlaskPydanticSpec, Response, Request
+from flask_pydantic_openapi import FlaskPydanticOpenapi, Response, Request
 
 
 class Profile(BaseModel):
@@ -120,7 +120,7 @@ class Message(BaseModel):
 
 
 app = Flask(__name__)
-api = FlaskPydanticSpec('flask')
+api = FlaskPydanticOpenapi('flask')
 
 
 @app.route('/api/user', methods=['POST'])

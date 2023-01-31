@@ -8,13 +8,16 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, "README.md"), encoding="utf-8") as f:
     readme = f.read()
 
-with open(path.join(here, "requirements/production.txt"), encoding="utf-8") as f:
-    requires = [req.strip() for req in f if req]
+requires = [
+    'pydantic >=1.2,<2',
+    'inflection >=0.5.0,<1',
+    'nested-lookup >=0.2.21,<1'
+]
 
 
 setup(
-    name="flask_pydantic_spec",
-    version="0.4.1",
+    name="flask_pydantic_openapi",
+    version="0.4.2",
     author="Chris Gearing, Simon Hayward, Rob Young, Donald Fleming, Saurabh Jha",
     author_email="chris.gearing@turntown.digital",
     description=(
@@ -23,7 +26,7 @@ setup(
     ),
     long_description=readme,
     long_description_content_type="text/markdown",
-    url="https://github.com/turner-townsend/flask-pydantic-spec",
+    url="https://github.com/PostBeyond/flask-pydantic-spec",
     packages=find_packages(exclude=["examples*", "tests*"]),
     package_data={},
     classifiers=[

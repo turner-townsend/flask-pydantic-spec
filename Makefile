@@ -27,9 +27,9 @@ style:
 	flake8 . --count --exit-zero --statistics
 
 lint:
-	mypy flask_pydantic_spec
+	mypy flask_pydantic_openapi
 
 format:
-	black tests flask_pydantic_spec
+	black tests flask_pydantic_openapi
 
 .PHONY: test doc

@@ -25,7 +25,7 @@ Features
 Quick Start
 -----------
 
-install with pip: ``pip install flask_pydantic_spec``
+install with pip: ``pip install flask_pydantic_openapi``
 
 Examples
 ~~~~~~~~
@@ -37,7 +37,7 @@ Step by Step
 
 1. Define your data structure used in (query, json, headers, cookies,
    resp) with ``pydantic.BaseModel``
-2. create ``flask_pydantic_spec.Validator`` instance with the web framework name you
+2. create ``flask_pydantic_openapi.Validator`` instance with the web framework name you
    are using, like ``api = Validator('flask')``
 3. ``api.validate`` decorate the route with
 

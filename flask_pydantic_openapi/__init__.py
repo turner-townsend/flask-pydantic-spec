@@ -1,10 +1,10 @@
 import logging
 
 from .types import Response, Request, MultipartFormRequest, FileResponse
-from .spec import FlaskPydanticSpec
+from .spec import FlaskPydanticOpenapi
 
 __all__ = [
-    "FlaskPydanticSpec",
+    "FlaskPydanticOpenapi",
     "Response",
     "Request",
     "MultipartFormRequest",

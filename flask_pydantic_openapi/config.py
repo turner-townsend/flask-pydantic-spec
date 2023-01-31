@@ -13,6 +13,8 @@ class Config:
     :ivar VERSION: service version
     :ivar DOMAIN: service host domain
     :ivar VALIDATION_ERROR_CODE: code for validation error responses
+    :ROOT_PATH: additional route prefix (for example to cover nginx issues)
+    :VISIBLE: Visibility of openapi docs
     """
 
     def __init__(self, **kwargs: Dict[str, Any]) -> None:
@@ -33,6 +35,9 @@ class Config:
         self.TAGS: List[Mapping[str, str]] = []
 
         self.logger = logging.getLogger(__name__)
+
+        self.ROOT_PATH: str = ""
+        self.VISIBLE: bool = True
 
         self.update(**kwargs)
 

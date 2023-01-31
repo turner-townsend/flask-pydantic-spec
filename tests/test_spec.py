@@ -7,11 +7,11 @@ from typing import List
 from openapi_spec_validator import validate_v3_spec
 from pydantic import BaseModel, StrictFloat, Field
 
-from flask_pydantic_spec import Response
-from flask_pydantic_spec.flask_backend import FlaskBackend
-from flask_pydantic_spec.types import FileResponse, Request, MultipartFormRequest
-from flask_pydantic_spec import FlaskPydanticSpec
-from flask_pydantic_spec.config import Config
+from flask_pydantic_openapi import Response
+from flask_pydantic_openapi.flask_backend import FlaskBackend
+from flask_pydantic_openapi.types import FileResponse, Request, MultipartFormRequest
+from flask_pydantic_openapi import FlaskPydanticOpenapi
+from flask_pydantic_openapi.config import Config
 
 from .common import get_paths
 
@@ -51,7 +51,7 @@ def backend_app():
 
 
 def test_spectree_init():
-    spec = FlaskPydanticSpec(path="docs")
+    spec = FlaskPydanticOpenapi(path="docs")
     conf = Config()
 
     assert spec.config.TITLE == conf.TITLE
@@ -60,13 +60,13 @@ def test_spectree_init():
 
 @pytest.mark.parametrize("name, app", backend_app())
 def test_register(name, app):
-    api = FlaskPydanticSpec(name)
+    api = FlaskPydanticOpenapi(name)
     api.register(app)
 
 
 @pytest.mark.parametrize("name, app", backend_app())
 def test_spec_generate(name, app):
-    api = FlaskPydanticSpec(
+    api = FlaskPydanticOpenapi(
         name,
         app=app,
         title=f"{name}",
@@ -81,14 +81,14 @@ def test_spec_generate(name, app):
     assert spec["tags"] == []
 
 
-api = FlaskPydanticSpec(
+api = FlaskPydanticOpenapi(
     "flask",
     tags=[{"name": "lone", "description": "a lone api"}],
     validation_error_code=400,
 )
-api_strict = FlaskPydanticSpec("flask", mode="strict")
-api_greedy = FlaskPydanticSpec("flask", mode="greedy")
-api_customize_backend = FlaskPydanticSpec(backend=FlaskBackend)
+api_strict = FlaskPydanticOpenapi("flask", mode="strict")
+api_greedy = FlaskPydanticOpenapi("flask", mode="greedy")
+api_customize_backend = FlaskPydanticOpenapi(backend=FlaskBackend)
 
 
 def create_app():

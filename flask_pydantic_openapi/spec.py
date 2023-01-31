@@ -28,12 +28,12 @@ def _move_schema_reference(reference: str) -> str:
     return reference
 
 
-class FlaskPydanticSpec:
+class FlaskPydanticOpenapi:
     """
     Interface
 
     :param str backend_name: choose from ('flask')
-    :param backend: a backend that inherit `flask_pydantic_spec.FlaskBackend`
+    :param backend: a backend that inherit `flask_pydantic_openapi.FlaskBackend`
     :param app: backend framework application instance (you can also register to it later)
     :param before: a callback function of the form :meth:`fla.utils.default_before_handler`
         ``func(req, resp, req_validation_error, instance)``
@@ -189,6 +189,9 @@ class FlaskPydanticSpec:
         """
         generate OpenAPI spec according to routes and decorators
         """
+        if not self.config.VISIBLE:
+            return {}
+
         tag_lookup = {tag["name"]: tag for tag in self.config.TAGS}
         routes: Dict[str, Any] = {}
         tags: Dict[str, Any] = {}
@@ -222,6 +225,9 @@ class FlaskPydanticSpec:
                     routes[path][method.lower()][
                         "requestBody"
                     ] = self._parse_request_body(request_body)
+
+        for route in list(routes.keys()):
+            routes[f"{self.config.ROOT_PATH}{route}"] = routes.pop(route)
 
         spec = {
             "openapi": self.config.OPENAPI_VERSION,

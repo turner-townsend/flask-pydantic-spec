@@ -1,5 +1,5 @@
 Utils
 ====================
 
-.. automodule:: flask_pydantic_spec.utils
+.. automodule:: flask_pydantic_openapi.utils
    :members:

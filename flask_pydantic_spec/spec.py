@@ -172,18 +172,14 @@ class FlaskPydanticSpec:
                     else:
                         _model = model
                     if _model:
-                        self.models[_model.__name__] = self._get_open_api_schema(
-                            _model.schema()
-                        )
+                        self.models[_model.__name__] = self._get_open_api_schema(_model.schema())
                     setattr(validation, name, model)
 
             if resp:
                 for model in resp.models:
                     if model:
                         assert not isinstance(model, RequestBase)
-                        self.models[model.__name__] = self._get_open_api_schema(
-                            model.schema()
-                        )
+                        self.models[model.__name__] = self._get_open_api_schema(model.schema())
                 setattr(validation, "resp", resp)
 
             if tags:
@@ -232,9 +228,9 @@ class FlaskPydanticSpec:
 
                 request_body = parse_request(func)
                 if request_body:
-                    routes[path][method.lower()][
-                        "requestBody"
-                    ] = self._parse_request_body(request_body)
+                    routes[path][method.lower()]["requestBody"] = self._parse_request_body(
+                        request_body
+                    )
 
         spec = {
             "openapi": self.config.OPENAPI_VERSION,
@@ -346,8 +342,6 @@ class FlaskPydanticSpec:
         schema = request_body["content"][content_type]["schema"]
         if "$ref" not in schema.keys():
             # handle inline schema definitions
-            return {
-                "content": {content_type: {"schema": self._get_open_api_schema(schema)}}
-            }
+            return {"content": {content_type: {"schema": self._get_open_api_schema(schema)}}}
         else:
             return request_body

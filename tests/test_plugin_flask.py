@@ -36,9 +36,7 @@ def api_after_handler(req, resp, err, _):
     resp.headers["X-API"] = "OK"
 
 
-api = FlaskPydanticSpec(
-    "flask", before=before_handler, after=after_handler, title="Test API"
-)
+api = FlaskPydanticSpec("flask", before=before_handler, after=after_handler, title="Test API")
 app = Flask(__name__)
 
 
@@ -62,9 +60,7 @@ def get_users():
         {
             "data": [
                 {"name": name}
-                for name in sorted(
-                    set(allowed_names).intersection(set(query_params.name))
-                )
+                for name in sorted(set(allowed_names).intersection(set(query_params.name)))
             ]
         }
     )
@@ -81,27 +77,21 @@ def get_users():
 )
 def user_score(name):
     score = [randint(0, request.context.body.limit) for _ in range(5)]
-    score.sort(
-        reverse=request.context.query.order if request.context.query.order else False
-    )
+    score.sort(reverse=request.context.query.order if request.context.query.order else False)
     assert request.context.cookies.pub == "abcdefg"
     assert request.cookies["pub"] == "abcdefg"
     return jsonify(name=request.context.body.name, score=score)
 
 
 @app.route("/api/group/<name>", methods=["GET"])
-@api.validate(
-    resp=Response(HTTP_200=Resp, HTTP_401=None, validate=False), tags=["api", "test"]
-)
+@api.validate(resp=Response(HTTP_200=Resp, HTTP_401=None, validate=False), tags=["api", "test"])
 def group_score(name):
     score = ["a", "b", "c", "d", "e"]
     return jsonify(name=name, score=score)
 
 
 @app.route("/api/file", methods=["POST"])
-@api.validate(
-    body=MultipartFormRequest(model=FileName), resp=Response(HTTP_200=DemoModel)
-)
+@api.validate(body=MultipartFormRequest(model=FileName), resp=Response(HTTP_200=DemoModel))
 def upload_file():
     files = request.files
     body = request.context.body
@@ -170,9 +160,7 @@ def test_sending_file(client):
         data={
             "file": file,
             "file_name": "another_test.jpg",
-            "data": json.dumps(
-                {"type": "foo", "created_at": str(datetime.now().date())}
-            ),
+            "data": json.dumps({"type": "foo", "created_at": str(datetime.now().date())}),
         },
         content_type="multipart/form-data",
     )
@@ -261,6 +249,4 @@ def test_flask_post_gzip_failure(client):
         },
     )
     assert resp.status_code == 400
-    assert resp.json == [
-        {"loc": ["limit"], "msg": "field required", "type": "value_error.missing"}
-    ]
+    assert resp.json == [{"loc": ["limit"], "msg": "field required", "type": "value_error.missing"}]

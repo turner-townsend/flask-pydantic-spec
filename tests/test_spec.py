@@ -138,9 +138,7 @@ def create_app():
         pass
 
     @app.route("/multipart-file", methods=["POST"])
-    @api.validate(
-        body=MultipartFormRequest(ExampleModel), resp=Response(HTTP_200=ExampleModel)
-    )
+    @api.validate(body=MultipartFormRequest(ExampleModel), resp=Response(HTTP_200=ExampleModel))
     def post_multipart_form():
         pass
 

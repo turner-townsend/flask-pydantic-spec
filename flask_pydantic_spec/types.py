@@ -10,17 +10,17 @@ class ResponseBase:
     """
 
     def has_model(self) -> bool:
-        raise NotImplemented
+        raise NotImplementedError
 
     def find_model(self, code: int) -> Optional[Type[BaseModel]]:
-        raise NotImplemented
+        raise NotImplementedError
 
     @property
     def models(self) -> Iterable[Type[BaseModel]]:
-        raise NotImplemented
+        raise NotImplementedError
 
     def generate_spec(self) -> Mapping[str, Any]:
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class Response(ResponseBase):
@@ -33,7 +33,6 @@ class Response(ResponseBase):
     """
 
     def __init__(self, *args: Any, **kwargs: Any):
-
         self.validate = True
         self.codes = []
         for item in args:
@@ -117,11 +116,7 @@ class FileResponse(ResponseBase):
         responses = {
             "200": {
                 "description": DEFAULT_CODE_DESC["HTTP_200"],
-                "content": {
-                    self.content_type: {
-                        "schema": {"type": "string", "format": "binary"}
-                    }
-                },
+                "content": {self.content_type: {"schema": {"type": "string", "format": "binary"}}},
             },
             "404": {"description": DEFAULT_CODE_DESC["HTTP_404"]},
         }
@@ -131,10 +126,10 @@ class FileResponse(ResponseBase):
 
 class RequestBase:
     def has_model(self) -> bool:
-        raise NotImplemented
+        raise NotImplementedError
 
     def generate_spec(self) -> Mapping[str, Any]:
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class Request(RequestBase):
@@ -155,9 +150,7 @@ class Request(RequestBase):
         if self.content_type == "application/octet-stream":
             return {
                 "content": {
-                    self.content_type: {
-                        "schema": {"type": "string", "format": self.encoding}
-                    }
+                    self.content_type: {"schema": {"type": "string", "format": self.encoding}}
                 }
             }
         else:
@@ -165,9 +158,7 @@ class Request(RequestBase):
             return {
                 "content": {
                     self.content_type: {
-                        "schema": {
-                            "$ref": f"#/components/schemas/{self.model.__name__}"
-                        }
+                        "schema": {"$ref": f"#/components/schemas/{self.model.__name__}"}
                     }
                 }
             }

@@ -1,11 +1,10 @@
 from collections import defaultdict
 from functools import wraps
-from typing import Mapping, Optional, Type, Union, Callable, Iterable, Any, Dict, cast
+from typing import Mapping, Optional, Type, Union, Callable, Iterable, Any, Dict, List
 
 from flask import Flask, Response as FlaskResponse
 from pydantic import BaseModel
 from inflection import camelize
-from nested_lookup import nested_alter
 
 from . import Request
 from .config import Config
@@ -26,6 +25,19 @@ def _move_schema_reference(reference: str) -> str:
     if "/definitions" in reference:
         return f"#/components/schemas/{reference.split('/definitions/')[-1]}"
     return reference
+
+
+def _nested_update_references(
+    input: Union[Dict[str, Any], List[Dict[str, Any]], str]
+) -> Union[Dict[str, Any], List[Any], str]:
+    if isinstance(input, str):
+        return _move_schema_reference(input)
+    elif isinstance(input, Dict):
+        return {key: _nested_update_references(value) for key, value in input.items()}
+    elif isinstance(input, List):
+        return [_nested_update_references(item) for item in input]
+    else:
+        return input
 
 
 class FlaskPydanticSpec:
@@ -126,7 +138,8 @@ class FlaskPydanticSpec:
         :param cookies: `pydantic.BaseModel`, if you have cookies for this route
         :param resp: `spectree.Response`
         :param tags: a tuple of tags string
-        :param deprecated: You can mark specific operations as deprecated to indicate that they should be transitioned out of usage
+        :param deprecated: You can mark specific operations as deprecated to indicate that they
+                    should be transitioned out of usage
         :param before: :meth:`spectree.utils.default_before_handler` for specific endpoint
         :param after: :meth:`spectree.utils.default_after_handler` for specific endpoint
         """
@@ -159,18 +172,14 @@ class FlaskPydanticSpec:
                     else:
                         _model = model
                     if _model:
-                        self.models[_model.__name__] = self._get_open_api_schema(
-                            _model.schema()
-                        )
+                        self.models[_model.__name__] = self._get_open_api_schema(_model.schema())
                     setattr(validation, name, model)
 
             if resp:
                 for model in resp.models:
                     if model:
                         assert not isinstance(model, RequestBase)
-                        self.models[model.__name__] = self._get_open_api_schema(
-                            model.schema()
-                        )
+                        self.models[model.__name__] = self._get_open_api_schema(model.schema())
                 setattr(validation, "resp", resp)
 
             if tags:
@@ -219,9 +228,9 @@ class FlaskPydanticSpec:
 
                 request_body = parse_request(func)
                 if request_body:
-                    routes[path][method.lower()][
-                        "requestBody"
-                    ] = self._parse_request_body(request_body)
+                    routes[path][method.lower()]["requestBody"] = self._parse_request_body(
+                        request_body
+                    )
 
         spec = {
             "openapi": self.config.OPENAPI_VERSION,
@@ -282,7 +291,7 @@ class FlaskPydanticSpec:
         for key, value in property.items():
             for prop, val in value.items():
                 if prop in allowed_fields:
-                    result[key][prop] = val
+                    result[key][prop] = _nested_update_references(val)
 
         return result
 
@@ -292,13 +301,15 @@ class FlaskPydanticSpec:
         """
         result = {}
         for key, value in schema.items():
+            if isinstance(value, (List, Dict)):
+                result[key] = _nested_update_references(value)
+
             if key == "properties":
                 result[key] = self._validate_property(value)
             else:
                 result[key] = value
-        return cast(
-            Mapping[str, Any], nested_alter(result, "$ref", _move_schema_reference)
-        )
+
+        return result
 
     def _get_model_definitions(self) -> Dict[str, Any]:
         """
@@ -308,6 +319,11 @@ class FlaskPydanticSpec:
         for model, schema in self.models.items():
             if model not in definitions.keys():
                 definitions[model] = schema
+
+            if "items" in schema:
+                definitions[model]["items"] = _nested_update_references(schema["items"])
+                del schema["items"]
+
             if "definitions" in schema:
                 for key, value in schema["definitions"].items():
                     definitions[key] = self._get_open_api_schema(value)
@@ -326,8 +342,6 @@ class FlaskPydanticSpec:
         schema = request_body["content"][content_type]["schema"]
         if "$ref" not in schema.keys():
             # handle inline schema definitions
-            return {
-                "content": {content_type: {"schema": self._get_open_api_schema(schema)}}
-            }
+            return {"content": {content_type: {"schema": self._get_open_api_schema(schema)}}}
         else:
             return request_body

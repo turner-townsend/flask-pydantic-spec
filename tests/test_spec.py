@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional
+from typing import Optional, Any, Dict, Union
 
 import pytest
 from flask import Flask
@@ -9,6 +9,7 @@ from pydantic import BaseModel, StrictFloat, Field
 
 from flask_pydantic_spec import Response
 from flask_pydantic_spec.flask_backend import FlaskBackend
+from flask_pydantic_spec.spec import _nested_update_references
 from flask_pydantic_spec.types import FileResponse, Request, MultipartFormRequest
 from flask_pydantic_spec import FlaskPydanticSpec
 from flask_pydantic_spec.config import Config
@@ -197,6 +198,7 @@ def test_valid_openapi_spec():
     app = create_app()
     api.register(app)
     spec = api.spec
+    breakpoint()
     validate_v3_spec(spec)
 
 
@@ -216,3 +218,21 @@ def test_openapi_deprecated():
 
     assert spec["paths"]["/lone"]["post"]["deprecated"] == True
     assert "deprecated" not in spec["paths"]["/lone"]["get"]
+
+
+@pytest.mark.parametrize(
+    "input,output", [
+        ("a string", "a string"),
+        ({"$ref": "#/definitions/Foo"}, {"$ref": "#/components/schemas/Foo"}),
+        ({"Foo": {"$ref": "#/definitions/Foo"}}, {"Foo": {"$ref": "#/components/schemas/Foo"}}),
+        ({"Foo": {"Bar": {"$ref": "#/definitions/Foo"}}}, {"Foo": {"Bar": {"$ref": "#/components/schemas/Foo"}}}),
+        (["foo", "bar"], ["foo", "bar"]),
+        (["foo", {"Foo": {"Bar": {"$ref": "#/definitions/Foo"}}}], ["foo", {"Foo": {"Bar": {"$ref": "#/components/schemas/Foo"}}}]),
+
+    ]
+)
+def test_nested_update_references(
+        input: Union[str, Dict[str, Any], List[str], List[Dict[str, Any]]],
+        output: Union[str, Dict[str, Any], List[str], List[Dict[str, Any]]]
+) -> None:
+    assert _nested_update_references(input) == output

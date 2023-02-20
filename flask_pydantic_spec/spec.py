@@ -1,11 +1,10 @@
 from collections import defaultdict
 from functools import wraps
-from typing import Mapping, Optional, Type, Union, Callable, Iterable, Any, Dict, cast
+from typing import Mapping, Optional, Type, Union, Callable, Iterable, Any, Dict, List
 
 from flask import Flask, Response as FlaskResponse
 from pydantic import BaseModel
 from inflection import camelize
-from nested_lookup import nested_alter
 
 from . import Request
 from .config import Config
@@ -26,6 +25,19 @@ def _move_schema_reference(reference: str) -> str:
     if "/definitions" in reference:
         return f"#/components/schemas/{reference.split('/definitions/')[-1]}"
     return reference
+
+
+def _nested_update_references(
+    input: Union[Dict[str, Any], List[Dict[str, Any]], str]
+) -> Union[Dict[str, Any], List[Dict[str, Any]], str]:
+    if isinstance(input, str):
+        return _move_schema_reference(input)
+    elif isinstance(input, Dict):
+        return {key: _nested_update_references(value) for key, value in input.items()}
+    elif isinstance(input, List):
+        return [_nested_update_references(item) for item in input]
+    else:
+        return input
 
 
 class FlaskPydanticSpec:
@@ -294,11 +306,13 @@ class FlaskPydanticSpec:
         for key, value in schema.items():
             if key == "properties":
                 result[key] = self._validate_property(value)
+
+            if isinstance(value, (List, Dict)):
+                result[key] = _nested_update_references(value)
             else:
                 result[key] = value
-        return cast(
-            Mapping[str, Any], nested_alter(result, "$ref", _move_schema_reference)
-        )
+
+        return result
 
     def _get_model_definitions(self) -> Dict[str, Any]:
         """

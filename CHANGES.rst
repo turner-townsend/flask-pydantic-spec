@@ -1,4 +1,12 @@
 .. currentmodule:: flask-pydantic-spec
+VERSION 0.4.2
+-------------
+
+Release 2023-02-20
+
+- Remove `nested-alter` dependency and replicate behaviour in the library to avoid potential build issues
+
+
 VERSION 0.4.1
 -------------
 

@@ -29,7 +29,7 @@ def _move_schema_reference(reference: str) -> str:
 
 def _nested_update_references(
     input: Union[Dict[str, Any], List[Dict[str, Any]], str]
-) -> Union[Dict[str, Any], List[Dict[str, Any]], str]:
+) -> Union[Dict[str, Any], List[Any], str]:
     if isinstance(input, str):
         return _move_schema_reference(input)
     elif isinstance(input, Dict):

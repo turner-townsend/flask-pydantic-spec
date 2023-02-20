@@ -232,7 +232,8 @@ def parse_rule(rule: Rule) -> Iterable[Tuple[Optional[str], Optional[str], str]]
     Parse a rule and return it as generator. Each iteration yields tuples in the form
     ``(converter, arguments, variable)``.
     If the converter is `None` it's a static url part, otherwise it's a dynamic one.
-    Note: This originally lived in werkzeug.routing.parse_rule until it was removed in werkzeug 2.2.0.
+    Note: This originally lived in werkzeug.routing.parse_rule until it was
+    removed in werkzeug 2.2.0.
     TODO - cgearing - do we really need this?
     """
     rule_str = str(rule)

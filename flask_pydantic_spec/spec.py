@@ -138,7 +138,8 @@ class FlaskPydanticSpec:
         :param cookies: `pydantic.BaseModel`, if you have cookies for this route
         :param resp: `spectree.Response`
         :param tags: a tuple of tags string
-        :param deprecated: You can mark specific operations as deprecated to indicate that they should be transitioned out of usage
+        :param deprecated: You can mark specific operations as deprecated to indicate that they
+                    should be transitioned out of usage
         :param before: :meth:`spectree.utils.default_before_handler` for specific endpoint
         :param after: :meth:`spectree.utils.default_after_handler` for specific endpoint
         """

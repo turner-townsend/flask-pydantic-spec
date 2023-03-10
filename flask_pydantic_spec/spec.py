@@ -1,4 +1,5 @@
 from collections import defaultdict
+from copy import copy, deepcopy
 from functools import wraps
 from typing import Mapping, Optional, Type, Union, Callable, Iterable, Any, Dict, List
 
@@ -20,24 +21,13 @@ from .utils import (
     default_after_handler,
 )
 
+OPENAPI_SCHEMA_TEMPLATE = "#/components/schemas/{model}"
+
 
 def _move_schema_reference(reference: str) -> str:
     if "/definitions" in reference:
         return f"#/components/schemas/{reference.split('/definitions/')[-1]}"
     return reference
-
-
-def _nested_update_references(
-    input: Union[Dict[str, Any], List[Dict[str, Any]], str]
-) -> Union[Dict[str, Any], List[Any], str]:
-    if isinstance(input, str):
-        return _move_schema_reference(input)
-    elif isinstance(input, Dict):
-        return {key: _nested_update_references(value) for key, value in input.items()}
-    elif isinstance(input, List):
-        return [_nested_update_references(item) for item in input]
-    else:
-        return input
 
 
 class FlaskPydanticSpec:
@@ -172,14 +162,18 @@ class FlaskPydanticSpec:
                     else:
                         _model = model
                     if _model:
-                        self.models[_model.__name__] = self._get_open_api_schema(_model.schema())
+                        self.models[_model.__name__] = self._get_open_api_schema(
+                            _model.schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
+                        )
                     setattr(validation, name, model)
 
             if resp:
                 for model in resp.models:
                     if model:
                         assert not isinstance(model, RequestBase)
-                        self.models[model.__name__] = self._get_open_api_schema(model.schema())
+                        self.models[model.__name__] = self._get_open_api_schema(
+                            model.schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
+                        )
                 setattr(validation, "resp", resp)
 
             if tags:
@@ -291,7 +285,7 @@ class FlaskPydanticSpec:
         for key, value in property.items():
             for prop, val in value.items():
                 if prop in allowed_fields:
-                    result[key][prop] = _nested_update_references(val)
+                    result[key][prop] = val
 
         return result
 
@@ -301,9 +295,6 @@ class FlaskPydanticSpec:
         """
         result = {}
         for key, value in schema.items():
-            if isinstance(value, (List, Dict)):
-                result[key] = _nested_update_references(value)
-
             if key == "properties":
                 result[key] = self._validate_property(value)
             else:
@@ -318,16 +309,13 @@ class FlaskPydanticSpec:
         definitions: Dict[str, Any] = {}
         for model, schema in self.models.items():
             if model not in definitions.keys():
-                definitions[model] = schema
-
-            if "items" in schema:
-                definitions[model]["items"] = _nested_update_references(schema["items"])
-                del schema["items"]
+                definitions[model] = deepcopy(schema)
 
             if "definitions" in schema:
                 for key, value in schema["definitions"].items():
                     definitions[key] = self._get_open_api_schema(value)
                 del schema["definitions"]
+                del definitions[model]["definitions"]
 
         return definitions
 

@@ -1,4 +1,11 @@
 .. currentmodule:: flask-pydantic-spec
+VERSION 0.4.3
+-------------
+
+Release 2023-03-13
+
+- Use Pydantic functionality to generate valid OpenAPI spec and fix issue with custom `__root__` models.
+
 VERSION 0.4.2
 -------------
 

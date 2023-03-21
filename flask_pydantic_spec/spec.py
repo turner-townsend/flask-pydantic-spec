@@ -315,7 +315,8 @@ class FlaskPydanticSpec:
                 for key, value in schema["definitions"].items():
                     definitions[key] = self._get_open_api_schema(value)
                 del schema["definitions"]
-                del definitions[model]["definitions"]
+                if "definitions" in definitions[model]:
+                    del definitions[model]["definitions"]
 
         return definitions
 

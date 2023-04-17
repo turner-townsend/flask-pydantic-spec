@@ -1,4 +1,13 @@
 .. currentmodule:: flask-pydantic-spec
+VERSION 0.4.4
+-------------
+
+Release 2023-04-17
+
+- Handle JSON requests with an empty body - thanks @TheForgottened
+- Handle missing definition key when cleaning up schemas
+
+
 VERSION 0.4.3
 -------------
 

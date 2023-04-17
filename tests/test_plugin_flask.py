@@ -121,6 +121,11 @@ def test_flask_validate(client):
     assert resp.headers.get("X-Error") is None
     assert resp.headers.get("X-Validation") == "Pass"
 
+    resp = client.get("/ping", headers={"lang": "en-US", "Content-Type": "application/json"})
+    assert resp.json == {"msg": "pong"}
+    assert resp.headers.get("X-Error") is None
+    assert resp.headers.get("X-Validation") == "Pass"
+
     resp = client.post("api/user/flask")
     assert resp.status_code == 422
     assert resp.headers.get("X-Error") == "Validation Error"

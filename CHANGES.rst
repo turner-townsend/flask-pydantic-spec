@@ -1,4 +1,12 @@
 .. currentmodule:: flask-pydantic-spec
+VERSION 0.4.5
+-------------
+
+Release 2023-04-24
+
+- Generate Multipart-form request schema data correctly
+
+
 VERSION 0.4.4
 -------------
 

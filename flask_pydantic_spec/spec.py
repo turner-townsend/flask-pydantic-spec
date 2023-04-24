@@ -1,5 +1,5 @@
 from collections import defaultdict
-from copy import copy, deepcopy
+from copy import deepcopy
 from functools import wraps
 from typing import Mapping, Optional, Type, Union, Callable, Iterable, Any, Dict, List
 
@@ -9,6 +9,7 @@ from inflection import camelize
 
 from . import Request
 from .config import Config
+from .constants import OPENAPI_SCHEMA_TEMPLATE
 from .flask_backend import FlaskBackend
 from .types import RequestBase, ResponseBase
 from .utils import (
@@ -20,8 +21,6 @@ from .utils import (
     default_before_handler,
     default_after_handler,
 )
-
-OPENAPI_SCHEMA_TEMPLATE = "#/components/schemas/{model}"
 
 
 def _move_schema_reference(reference: str) -> str:

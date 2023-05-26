@@ -63,7 +63,6 @@ class Response(ResponseBase):
                         self.code_models[key] = ResponseModel(value, False)
                 else:
                     self.codes.append(key)
-        x = 1
 
     @staticmethod
     def is_list_type(value, base_model):

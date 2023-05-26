@@ -1,18 +1,17 @@
 from enum import Enum
-from typing import Optional, Any, Dict, Union
+from typing import List
+from typing import Optional
 
 import pytest
 from flask import Flask
-from typing import List
 from openapi_spec_validator import validate_v3_spec
 from pydantic import BaseModel, StrictFloat, Field
 
+from flask_pydantic_spec import FlaskPydanticSpec
 from flask_pydantic_spec import Response
+from flask_pydantic_spec.config import Config
 from flask_pydantic_spec.flask_backend import FlaskBackend
 from flask_pydantic_spec.types import FileResponse, Request, MultipartFormRequest
-from flask_pydantic_spec import FlaskPydanticSpec
-from flask_pydantic_spec.config import Config
-
 from .common import get_paths
 
 
@@ -118,6 +117,15 @@ def create_app():
     def lone_post():
         pass
 
+    @app.route("/lone", methods=["PATCH"])
+    @api.validate(
+        body=Request(ExampleModel),
+        resp=Response(HTTP_200=list[ExampleModel], HTTP_400=ExampleNestedModel),
+        tags=["lone"],
+    )
+    def lone_patch():
+        pass
+
     @app.route("/query", methods=["GET"])
     @api.validate(query=ExampleQuery)
     def get_query():
@@ -188,7 +196,7 @@ def test_two_endpoints_with_the_same_path():
 
     http_methods = list(spec["paths"]["/lone"].keys())
     http_methods.sort()
-    assert http_methods == ["get", "post"]
+    assert http_methods == ["get", "patch", "post"]
 
 
 def test_valid_openapi_spec():
@@ -223,3 +231,12 @@ def test_flat_array_schemas():
     spec = api.spec
 
     assert spec["components"]["schemas"][ExampleNestedList.__name__].get("items") is not None
+
+
+def test_flat_array_schema_from_python_list_type():
+    app = create_app()
+    api.register(app)
+    spec = api.spec
+
+    assert spec["paths"]["/lone"]["patch"]["responses"]["200"]["content"]["application/json"]["schema"]["type"] == "array"  # noqa
+    assert spec["paths"]["/lone"]["patch"]["responses"]["200"]["content"]["application/json"]["schema"]["items"]["$ref"] == "#/components/schemas/ExampleModel"  # noqa

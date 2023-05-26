@@ -1,5 +1,6 @@
 import re
-from typing import Optional, Type, Iterable, Mapping, Any, Dict
+from collections import namedtuple
+from typing import Optional, Type, Iterable, Mapping, Any, Dict, is_typeddict, NamedTuple
 
 from pydantic import BaseModel
 
@@ -25,6 +26,11 @@ class ResponseBase:
         raise NotImplementedError
 
 
+class ResponseModel(NamedTuple):
+    model: Type[BaseModel]
+    is_list: bool = False
+
+
 class Response(ResponseBase):
     """
     response object
@@ -41,7 +47,7 @@ class Response(ResponseBase):
             assert item in DEFAULT_CODE_DESC, "invalid HTTP status code"
             self.codes.append(item)
 
-        self.code_models: Dict[str, Type[BaseModel]] = {}
+        self.code_models: Dict[str, ResponseModel] = {}
         for key, value in kwargs.items():
             if key.lower() == "validate":
                 assert isinstance(value, bool)
@@ -49,10 +55,19 @@ class Response(ResponseBase):
             else:
                 assert key in DEFAULT_CODE_DESC, "invalid HTTP status code"
                 if value:
-                    assert issubclass(value, BaseModel), "invalid `pydantic.BaseModel`"
-                    self.code_models[key] = value
+                    if self.is_list_type(value, BaseModel):
+                        assert issubclass(value.__args__[0], BaseModel), "invalid `pydantic.BaseModel`"
+                        self.code_models[key] = ResponseModel(value.__args__[0], True)
+                    else:
+                        assert issubclass(value, BaseModel), "invalid `pydantic.BaseModel`"
+                        self.code_models[key] = ResponseModel(value, False)
                 else:
                     self.codes.append(key)
+        x = 1
+
+    @staticmethod
+    def is_list_type(value, base_model):
+        return hasattr(value, '__origin__') and value.__origin__ is list
 
     def has_model(self) -> bool:
         """
@@ -64,14 +79,17 @@ class Response(ResponseBase):
         """
         :param code: ``r'\\d{3}'``
         """
-        return self.code_models.get(f"HTTP_{code}")
+        response_model = self.code_models.get(f"HTTP_{code}")
+        if response_model:
+            return response_model.model
+        return None
 
     @property
     def models(self) -> Iterable[Type[BaseModel]]:
         """
         :returns:  dict_values -- all the models in this response
         """
-        return self.code_models.values()
+        return [i.model for i in self.code_models.values()]
 
     def generate_spec(self) -> Dict[str, Any]:
         """
@@ -85,19 +103,25 @@ class Response(ResponseBase):
             if response_code:
                 responses[response_code] = {"description": DEFAULT_CODE_DESC[code]}
 
-        for code, model in self.code_models.items():
+        for code, response_model in self.code_models.items():
             response_code = _parse_code(code)
             if response_code:
+                schema = self.get_schema(response_model.model, is_list=response_model.is_list)
                 responses[response_code] = {
                     "description": DEFAULT_CODE_DESC[code],
                     "content": {
-                        "application/json": {
-                            "schema": {"$ref": f"#/components/schemas/{model.__name__}"}
-                        }
+                        "application/json": schema
                     },
                 }
 
         return responses
+
+    @staticmethod
+    def get_schema(model: Type[BaseModel], is_list: bool = False) -> Mapping[str, Any]:
+        ref_schema = {"$ref": f"#/components/schemas/{model.__name__}"}
+        if is_list:
+            return {"schema": {"type": "array", "items": ref_schema}}
+        return {"schema": ref_schema}
 
 
 class FileResponse(ResponseBase):

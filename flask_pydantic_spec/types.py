@@ -1,6 +1,5 @@
 import re
-from collections import namedtuple
-from typing import Optional, Type, Iterable, Mapping, Any, Dict, is_typeddict, NamedTuple
+from typing import Optional, Type, Iterable, Mapping, Any, Dict, NamedTuple
 
 from pydantic import BaseModel
 

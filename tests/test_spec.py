@@ -1,5 +1,6 @@
 from enum import Enum
-from typing import Optional, Any, Dict, Union
+import re
+from typing import Optional
 
 import pytest
 from flask import Flask
@@ -13,7 +14,7 @@ from flask_pydantic_spec.types import FileResponse, Request, MultipartFormReques
 from flask_pydantic_spec import FlaskPydanticSpec
 from flask_pydantic_spec.config import Config
 
-from .common import get_paths
+from .common import ExampleConverter, UnknownConverter, get_paths
 
 
 class ExampleModel(BaseModel):
@@ -50,6 +51,40 @@ def backend_app():
     ]
 
 
+@pytest.fixture
+def empty_app():
+    return Flask(__name__)
+
+
+@pytest.fixture
+def name():
+    return "flask"
+
+
+@pytest.fixture
+def api(name) -> FlaskPydanticSpec:
+    return FlaskPydanticSpec(
+        name,
+        tags=[{"name": "lone", "description": "a lone api"}],
+        validation_error_code=400,
+    )
+
+
+@pytest.fixture
+def api_strict(name):
+    return FlaskPydanticSpec(name, mode="strict")
+
+
+@pytest.fixture
+def api_greedy(name):
+    return FlaskPydanticSpec(name, mode="greedy")
+
+
+@pytest.fixture
+def api_customize_backend():
+    return FlaskPydanticSpec(backend=FlaskBackend)
+
+
 def test_spectree_init():
     spec = FlaskPydanticSpec(path="docs")
     conf = Config()
@@ -58,17 +93,15 @@ def test_spectree_init():
     assert spec.config.PATH == "docs"
 
 
-@pytest.mark.parametrize("name, app", backend_app())
-def test_register(name, app):
+def test_register(name, empty_app):
     api = FlaskPydanticSpec(name)
-    api.register(app)
+    api.register(empty_app)
 
 
-@pytest.mark.parametrize("name, app", backend_app())
-def test_spec_generate(name, app):
+def test_spec_generate(name, empty_app):
     api = FlaskPydanticSpec(
         name,
-        app=app,
+        app=empty_app,
         title=f"{name}",
         info={"title": "override", "description": "api level description"},
         tags=[{"name": "lone", "description": "a lone api"}],
@@ -81,18 +114,11 @@ def test_spec_generate(name, app):
     assert spec["tags"] == []
 
 
-api = FlaskPydanticSpec(
-    "flask",
-    tags=[{"name": "lone", "description": "a lone api"}],
-    validation_error_code=400,
-)
-api_strict = FlaskPydanticSpec("flask", mode="strict")
-api_greedy = FlaskPydanticSpec("flask", mode="greedy")
-api_customize_backend = FlaskPydanticSpec(backend=FlaskBackend)
-
-
-def create_app():
+@pytest.fixture
+def app(api: FlaskPydanticSpec, api_strict: FlaskPydanticSpec) -> Flask:
     app = Flask(__name__)
+    app.url_map.converters["example"] = ExampleConverter
+    app.url_map.converters["unknown"] = UnknownConverter
 
     @app.route("/foo")
     @api.validate()
@@ -141,48 +167,63 @@ def create_app():
     def post_multipart_form():
         pass
 
+    @app.route("/enum/<example:example>", methods=["GET"])
+    @api.validate(resp=Response(HTTP_200=None))
+    def get_enum(example):
+        pass
+
     return app
 
 
-def test_spec_bypass_mode():
-    app = create_app()
+@pytest.mark.parametrize(
+    ("spec", "paths"),
+    [
+        (
+            "api",
+            [
+                "/enum/{example}",
+                "/file",
+                "/foo",
+                "/lone",
+                "/multipart-file",
+                "/query",
+            ],
+        ),
+        (
+            "api_greedy",
+            [
+                "/bar",
+                "/enum/{example}",
+                "/file",
+                "/foo",
+                "/lone",
+                "/multipart-file",
+                "/query",
+            ],
+        ),
+        (
+            "api_customize_backend",
+            ["/lone"],
+        ),
+        (
+            "api_strict",
+            ["/bar"],
+        ),
+    ],
+)
+def test_spec_bypass_mode(
+    request,
+    app: Flask,
+    spec: str,
+    paths: List[str],
+):
+    api = request.getfixturevalue(spec)
+
     api.register(app)
-    assert get_paths(api.spec) == [
-        "/file",
-        "/foo",
-        "/lone",
-        "/multipart-file",
-        "/query",
-    ]
-
-    app = create_app()
-    api_customize_backend.register(app)
-    assert get_paths(api.spec) == [
-        "/file",
-        "/foo",
-        "/lone",
-        "/multipart-file",
-        "/query",
-    ]
-
-    app = create_app()
-    api_greedy.register(app)
-    assert get_paths(api_greedy.spec) == [
-        "/bar",
-        "/file",
-        "/foo",
-        "/lone",
-        "/multipart-file",
-        "/query",
-    ]
-
-    app = create_app()
-    api_strict.register(app)
-    assert get_paths(api_strict.spec) == ["/bar"]
+    assert get_paths(api.spec) == paths
 
 
-def test_two_endpoints_with_the_same_path():
-    app = create_app()
+def test_two_endpoints_with_the_same_path(app: Flask, api: FlaskPydanticSpec):
     api.register(app)
     spec = api.spec
 
@@ -191,16 +232,14 @@ def test_two_endpoints_with_the_same_path():
     assert http_methods == ["get", "post"]
 
 
-def test_valid_openapi_spec():
-    app = create_app()
+def test_valid_openapi_spec(app: Flask, api: FlaskPydanticSpec):
     api.register(app)
     spec = api.spec
 
     validate_v3_spec(spec)
 
 
-def test_openapi_tags():
-    app = create_app()
+def test_openapi_tags(app: Flask, api: FlaskPydanticSpec):
     api.register(app)
     spec = api.spec
 
@@ -208,8 +247,7 @@ def test_openapi_tags():
     assert spec["tags"][0]["description"] == "a lone api"
 
 
-def test_openapi_deprecated():
-    app = create_app()
+def test_openapi_deprecated(app: Flask, api: FlaskPydanticSpec):
     api.register(app)
     spec = api.spec
 
@@ -217,9 +255,73 @@ def test_openapi_deprecated():
     assert "deprecated" not in spec["paths"]["/lone"]["get"]
 
 
-def test_flat_array_schemas():
-    app = create_app()
+def test_flat_array_schemas(app: Flask, api: FlaskPydanticSpec):
     api.register(app)
     spec = api.spec
 
     assert spec["components"]["schemas"][ExampleNestedList.__name__].get("items") is not None
+
+
+@pytest.mark.parametrize(
+    ("route", "schema"),
+    [
+        pytest.param(
+            "/convert/<any(a, b, c):example>",
+            {"type": "string", "enum": ["a", "b", "c"]},
+            id="any",
+        ),
+        pytest.param(
+            "/convert/<int(min=1, max=5):example>",
+            {"type": "integer", "format": "int32", "minimum": 1, "maximum": 5},
+            id="int",
+        ),
+        pytest.param(
+            "/convert/<uuid:example>",
+            {"type": "string", "format": "uuid"},
+            id="uuid",
+        ),
+        pytest.param(
+            "/convert/<float:example>",
+            {"type": "number", "format": "float"},
+            id="float",
+        ),
+        pytest.param(
+            "/convert/<path:example>",
+            {"type": "string", "format": "path"},
+            id="path",
+        ),
+        pytest.param(
+            "/convert/<string(length=5):example>",
+            {"type": "string", "length": 5},
+            id="string-with-length",
+        ),
+        pytest.param(
+            "/convert/<string(maxlength=5):example>",
+            {"type": "string", "maxLength": 5},
+            id="string-with-max-length",
+        ),
+        pytest.param(
+            "/convert/<unknown:example>",
+            {"type": "string"},
+            id="custom-unknown",
+        ),
+        pytest.param(
+            "/convert/<example:example>",
+            {"type": "string", "enum": ["one", "two"]},
+            id="custom-enum",
+        ),
+    ],
+)
+def test_url_converters(route, schema, app: Flask, api: FlaskPydanticSpec):
+    @app.get(route)
+    @api.validate(resp=Response(HTTP_200=None))
+    def get_with_converter(example):
+        pass
+
+    api.register(app)
+
+    spec = api.spec
+
+    spec_route = re.sub(r"<.*:(.*)>", r"{\1}", route)
+
+    assert spec["paths"][spec_route]["get"]["parameters"][0]["schema"] == schema

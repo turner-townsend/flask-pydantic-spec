@@ -3,6 +3,7 @@ from enum import IntEnum, Enum
 from typing import List, Optional
 
 from pydantic import BaseModel, root_validator
+from werkzeug.routing import BaseConverter
 
 
 class Order(IntEnum):
@@ -67,6 +68,25 @@ class FileMetadata(BaseModel):
 class FileName(BaseModel):
     file_name: str
     data: FileMetadata
+
+class ExampleEnum(Enum):
+    one = "one"
+    two = "two"
+
+class ExampleConverter(BaseConverter):
+    def to_python(self, value) -> ExampleEnum:
+        return ExampleEnum(value)
+
+    def to_url(self, value) -> str:
+        return value.value
+
+
+class UnknownConverter(BaseConverter):
+    def to_python(self, value) -> object:
+        return object()
+
+    def to_url(self, value) -> str:
+        return str(value)
 
 
 def get_paths(spec):

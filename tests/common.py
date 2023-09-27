@@ -69,9 +69,11 @@ class FileName(BaseModel):
     file_name: str
     data: FileMetadata
 
+
 class ExampleEnum(Enum):
     one = "one"
     two = "two"
+
 
 class ExampleConverter(BaseConverter):
     def to_python(self, value) -> ExampleEnum:

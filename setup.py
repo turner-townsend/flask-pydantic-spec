@@ -14,12 +14,11 @@ with open(path.join(here, "requirements/production.txt"), encoding="utf-8") as f
 
 setup(
     name="flask_pydantic_spec",
-    version="0.4.5",
+    version="0.5.0",
     author="Chris Gearing, Simon Hayward, Rob Young, Donald Fleming, Saurabh Jha",
     author_email="chris.gearing@turntown.digital",
     description=(
-        "generate OpenAPI document and validate request & response "
-        "with Python annotations."
+        "generate OpenAPI document and validate request & response " "with Python annotations."
     ),
     long_description=readme,
     long_description_content_type="text/markdown",

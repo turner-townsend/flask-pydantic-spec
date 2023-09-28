@@ -1,14 +1,15 @@
 from enum import Enum
 import re
-from typing import Optional
+from typing import Optional, List
 
 import pytest
 from flask import Flask
-from typing import List
 from openapi_spec_validator import validate_v3_spec
 from pydantic import BaseModel, StrictFloat, Field
 
+from flask_pydantic_spec import FlaskPydanticSpec
 from flask_pydantic_spec import Response
+from flask_pydantic_spec.config import Config
 from flask_pydantic_spec.flask_backend import FlaskBackend
 from flask_pydantic_spec.types import FileResponse, Request, MultipartFormRequest
 from flask_pydantic_spec import FlaskPydanticSpec
@@ -144,6 +145,15 @@ def app(api: FlaskPydanticSpec, api_strict: FlaskPydanticSpec) -> Flask:
     def lone_post():
         pass
 
+    @app.route("/lone", methods=["PATCH"])
+    @api.validate(
+        body=Request(ExampleModel),
+        resp=Response(HTTP_200=List[ExampleModel], HTTP_400=ExampleNestedModel),
+        tags=["lone"],
+    )
+    def lone_patch():
+        pass
+
     @app.route("/query", methods=["GET"])
     @api.validate(query=ExampleQuery)
     def get_query():
@@ -229,7 +239,7 @@ def test_two_endpoints_with_the_same_path(app: Flask, api: FlaskPydanticSpec):
 
     http_methods = list(spec["paths"]["/lone"].keys())
     http_methods.sort()
-    assert http_methods == ["get", "post"]
+    assert http_methods == ["get", "patch", "post"]
 
 
 def test_valid_openapi_spec(app: Flask, api: FlaskPydanticSpec):
@@ -325,3 +335,17 @@ def test_url_converters(route, schema, app: Flask, api: FlaskPydanticSpec):
     spec_route = re.sub(r"<.*:(.*)>", r"{\1}", route)
 
     assert spec["paths"][spec_route]["get"]["parameters"][0]["schema"] == schema
+
+
+def test_flat_array_schema_from_python_list_type(app: Flask, api: FlaskPydanticSpec):
+    api.register(app)
+    spec = api.spec
+
+    schema_spec = spec["paths"]["/lone"]["patch"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+
+    assert (
+        schema_spec["type"] == "array"
+        and schema_spec["items"]["$ref"] == "#/components/schemas/ExampleModel"
+    )

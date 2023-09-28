@@ -54,8 +54,10 @@ class Response(ResponseBase):
             else:
                 assert key in DEFAULT_CODE_DESC, "invalid HTTP status code"
                 if value:
-                    if self.is_list_type(value, BaseModel):
-                        assert issubclass(value.__args__[0], BaseModel), "invalid `pydantic.BaseModel`"
+                    if self.is_list_type(value):
+                        assert issubclass(
+                            value.__args__[0], BaseModel
+                        ), "invalid `pydantic.BaseModel`"
                         self.code_models[key] = ResponseModel(value.__args__[0], True)
                     else:
                         assert issubclass(value, BaseModel), "invalid `pydantic.BaseModel`"
@@ -64,8 +66,8 @@ class Response(ResponseBase):
                     self.codes.append(key)
 
     @staticmethod
-    def is_list_type(value, base_model):
-        return hasattr(value, '__origin__') and value.__origin__ is list
+    def is_list_type(value: Any) -> bool:
+        return hasattr(value, "__origin__") and value.__origin__ is list
 
     def has_model(self) -> bool:
         """
@@ -107,9 +109,7 @@ class Response(ResponseBase):
                 schema = self.get_schema(response_model.model, is_list=response_model.is_list)
                 responses[response_code] = {
                     "description": DEFAULT_CODE_DESC[code],
-                    "content": {
-                        "application/json": schema
-                    },
+                    "content": {"application/json": schema},
                 }
 
         return responses

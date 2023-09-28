@@ -148,7 +148,7 @@ def app(api: FlaskPydanticSpec, api_strict: FlaskPydanticSpec) -> Flask:
     @app.route("/lone", methods=["PATCH"])
     @api.validate(
         body=Request(ExampleModel),
-        resp=Response(HTTP_200=list[ExampleModel], HTTP_400=ExampleNestedModel),
+        resp=Response(HTTP_200=List[ExampleModel], HTTP_400=ExampleNestedModel),
         tags=["lone"],
     )
     def lone_patch():

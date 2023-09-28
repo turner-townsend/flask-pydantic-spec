@@ -1,4 +1,15 @@
 .. currentmodule:: flask-pydantic-spec
+
+VERSION 0.5.0
+-------------
+
+Release 2023-09-28
+
+- Drop support for Python 3.7
+- Add support for Python list in Response
+- Add support for custom URL converters
+
+
 VERSION 0.4.5
 -------------
 

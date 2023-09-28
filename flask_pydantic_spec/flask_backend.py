@@ -1,3 +1,4 @@
+from enum import Enum
 import gzip
 import json
 import logging
@@ -71,13 +72,11 @@ class FlaskBackend:
                 args, kwargs = parse_converter_args(arguments)
 
             schema = None
+            # See: https://werkzeug.palletsprojects.com/en/2.3.x/routing/#built-in-converters
             if converter == "any":
                 schema = {
-                    "type": "array",
-                    "items": {
-                        "type": "string",
-                        "enum": args,
-                    },
+                    "type": "string",
+                    "enum": list(args),
                 }
             elif converter == "int":
                 schema = {
@@ -107,11 +106,16 @@ class FlaskBackend:
                 schema = {
                     "type": "string",
                 }
-                for prop in ["length", "maxLength", "minLength"]:
-                    if prop in kwargs:
-                        schema[prop] = kwargs[prop]
+                if "length" in kwargs:
+                    schema["length"] = kwargs["length"]
+                if "maxlength" in kwargs:
+                    schema["maxLength"] = kwargs["maxlength"]
+                if "minlength" in kwargs:
+                    schema["minLength"] = kwargs["minlength"]
             elif converter == "default":
                 schema = {"type": "string"}
+            else:
+                schema = _parse_custom_url_converter(converter, self.app) or {"type": "string"}
 
             parameters.append(
                 {
@@ -217,3 +221,21 @@ class FlaskBackend:
                 f"doc_page_{ui}",
                 lambda ui=ui: PAGES[ui].format(self.config),
             )
+
+
+def _parse_custom_url_converter(converter: str, app: Flask) -> Optional[Dict[str, Any]]:
+    """Attempt derive a schema from a custom URL converter."""
+    try:
+        converter_cls = app.url_map.converters[converter]
+        import inspect
+
+        signature = inspect.signature(converter_cls.to_python)
+        return_type = signature.return_annotation
+        if issubclass(return_type, Enum):
+            return {
+                "type": "string",
+                "enum": [e.value for e in return_type],
+            }
+    except (KeyError, AttributeError):
+        pass
+    return None

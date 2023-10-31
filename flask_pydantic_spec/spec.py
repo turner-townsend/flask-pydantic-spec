@@ -181,7 +181,7 @@ class FlaskPydanticSpec:
             params = []
             if "." in func.__qualname__:
                 class_view = True
-                view_name, method = func.__qualname__.split(".")
+                view_name, *_, method = func.__qualname__.split(".")
                 if view_name not in self.class_view_api_info:
                     self.class_view_api_info[view_name] = {method: {}}
                 else:

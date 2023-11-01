@@ -211,7 +211,7 @@ class FlaskPydanticSpec:
                         ] = self._get_open_api_schema(_model.schema())
                     setattr(validation, name, model)
 
-                    if class_view:
+                    if class_view and _model:
                         model_schema = self._get_open_api_schema(_model.schema())
                         for param_name, schema in model_schema["properties"].items():
                             params.append(

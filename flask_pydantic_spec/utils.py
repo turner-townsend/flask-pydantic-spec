@@ -210,7 +210,6 @@ def parse_multi_dict(input: MultiDict) -> Dict[str, Any]:
         result[key] = value_to_use
     return result
 
-
 RE_PARSE_RULE = re.compile(
     r"""
     (?P<static>[^<]*)                           # static rule data

@@ -12,12 +12,10 @@ from typing import (
     Optional,
     List,
     Dict,
-    Generator,
     Iterable,
 )
 
 from werkzeug.datastructures import MultiDict
-from flask import Request as FlaskRequest
 from pydantic import BaseModel
 from werkzeug.routing import Rule
 
@@ -59,7 +57,9 @@ def parse_request(func: Callable) -> Mapping[str, Any]:
 
 
 def parse_params(
-    func: Callable, params: List[Mapping[str, Any]], models: Mapping[str, Any],
+    func: Callable,
+    params: List[Mapping[str, Any]],
+    models: Mapping[str, Any],
 ) -> List[Mapping[str, Any]]:
     """
     get spec for (query, headers, cookies)
@@ -209,6 +209,7 @@ def parse_multi_dict(input: MultiDict) -> Dict[str, Any]:
             value_to_use = value
         result[key] = value_to_use
     return result
+
 
 RE_PARSE_RULE = re.compile(
     r"""

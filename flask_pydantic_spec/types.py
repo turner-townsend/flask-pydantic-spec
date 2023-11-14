@@ -33,7 +33,6 @@ class Response(ResponseBase):
     """
 
     def __init__(self, *args: Any, **kwargs: Any):
-
         self.validate = True
         self.codes = []
         for item in args:
@@ -117,17 +116,22 @@ class FileResponse(ResponseBase):
         responses = {
             "200": {
                 "description": DEFAULT_CODE_DESC["HTTP_200"],
-                "content": {self.content_type: {"schema": {"type": "string", "format": "binary"}}},
+                "content": {
+                    self.content_type: {
+                        "schema": {"type": "string", "format": "binary"}
+                    }
+                },
             },
             "404": {"description": DEFAULT_CODE_DESC["HTTP_404"]},
         }
 
         return responses
 
+
 class HLSFileResponse(ResponseBase):
     def __init__(self, content_types: List[str] = None):
         self.content_types = content_types
-    
+
     def has_model(self) -> bool:
         """
         HLS file response cannot have a model
@@ -142,12 +146,17 @@ class HLSFileResponse(ResponseBase):
         responses = {
             "200": {
                 "description": DEFAULT_CODE_DESC["HTTP_200"],
-                "content": {self.content_types: {"schema": {"type": "string", "format": "binary"}}},
+                "content": {
+                    self.content_types: {
+                        "schema": {"type": "string", "format": "binary"}
+                    }
+                },
             },
             "404": {"description": DEFAULT_CODE_DESC["HTTP_404"]},
         }
 
         return responses
+
 
 class RequestBase:
     def has_model(self) -> bool:
@@ -175,7 +184,9 @@ class Request(RequestBase):
         if self.content_type == "application/octet-stream":
             return {
                 "content": {
-                    self.content_type: {"schema": {"type": "string", "format": self.encoding}}
+                    self.content_type: {
+                        "schema": {"type": "string", "format": self.encoding}
+                    }
                 }
             }
         else:
@@ -183,7 +194,9 @@ class Request(RequestBase):
             return {
                 "content": {
                     self.content_type: {
-                        "schema": {"$ref": f"#/components/schemas/{self.model.__name__}"}
+                        "schema": {
+                            "$ref": f"#/components/schemas/{self.model.__name__}"
+                        }
                     }
                 }
             }
@@ -218,7 +231,10 @@ class MultipartFormRequest(RequestBase):
                         "type": "object",
                         "properties": {
                             **additional_properties,
-                            self.file_key: {"type": "string", "format": self.encoding,},
+                            self.file_key: {
+                                "type": "string",
+                                "format": self.encoding,
+                            },
                         },
                     }
                 }

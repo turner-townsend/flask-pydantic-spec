@@ -82,7 +82,9 @@ def test_spec_generate(name, app):
 
 
 api = FlaskPydanticSpec(
-    "flask", tags=[{"name": "lone", "description": "a lone api"}], validation_error_code=400,
+    "flask",
+    tags=[{"name": "lone", "description": "a lone api"}],
+    validation_error_code=400,
 )
 api_strict = FlaskPydanticSpec("flask", mode="strict")
 api_greedy = FlaskPydanticSpec("flask", mode="greedy")
@@ -128,13 +130,16 @@ def create_app():
 
     @app.route("/file", methods=["POST"])
     @api.validate(
-        body=Request(content_type="application/octet-stream"), resp=Response(HTTP_200=None),
+        body=Request(content_type="application/octet-stream"),
+        resp=Response(HTTP_200=None),
     )
     def post_file():
         pass
 
     @app.route("/multipart-file", methods=["POST"])
-    @api.validate(body=MultipartFormRequest(ExampleModel), resp=Response(HTTP_200=ExampleModel))
+    @api.validate(
+        body=MultipartFormRequest(ExampleModel), resp=Response(HTTP_200=ExampleModel)
+    )
     def post_multipart_form():
         pass
 

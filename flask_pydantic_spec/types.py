@@ -129,7 +129,7 @@ class FileResponse(ResponseBase):
 
 
 class HLSFileResponse(ResponseBase):
-    def __init__(self, content_types: List[str] = None):
+    def __init__(self, content_types: Optional[List[str]] = None):
         self.content_types = content_types
 
     def has_model(self) -> bool:

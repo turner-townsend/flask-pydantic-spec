@@ -62,18 +62,20 @@ class FlaskPydanticSpec:
         self.models: Dict[str, Any] = {}
         if app:
             self.register(app)
-        self.class_view_api_info = (
-            dict()
-        )  # class view info when adding validate decorator
-        self.class_view_apispec = (
-            dict()
-        )  # convert class_view_api_info into openapi spec
-        self.routes_by_category = (
-            dict()
-        )  # routes openapi info by category as key in the dict
-        self._spec_by_category = dict()  # openapi spec by category
-        self._models_by_category = defaultdict(dict)  # model schemas by category
-        self.tags = dict()
+        self.class_view_api_info: Dict[
+            str, dict
+        ] = dict()  # class view info when adding validate decorator
+        self.class_view_apispec: Dict[
+            str, dict
+        ] = dict()  # convert class_view_api_info into openapi spec
+        self.routes_by_category: Dict[
+            str, dict
+        ] = dict()  # routes openapi info by category as key in the dict
+        self._spec_by_category: Dict[str, Mapping] = dict()  # openapi spec by category
+        self._models_by_category: Dict[str, dict] = defaultdict(
+            dict
+        )  # model schemas by category
+        self.tags: Dict[str, Mapping] = dict()
 
     def register(self, app: Flask) -> None:
         """
@@ -94,7 +96,7 @@ class FlaskPydanticSpec:
             self._spec = self._generate_spec()
         return self._spec
 
-    def spec_by_category(self, category) -> Mapping[str, Any]:
+    def spec_by_category(self, category: str) -> Mapping[str, Any]:
         """
         get OpenAPI spec by category
         :return:
@@ -133,6 +135,7 @@ class FlaskPydanticSpec:
         """bypass unpublished APIs under publish_only mode"""
         if self.config.MODE == "publish_only":
             return not getattr(func, "publish", False)
+        return False
 
     def validate(
         self,
@@ -273,8 +276,10 @@ class FlaskPydanticSpec:
 
         return decorate_validation
 
-    def _generate_spec_common(self, routes, category=None):
-        spec = {
+    def _generate_spec_common(
+        self, routes: dict, category: Optional[str] = None
+    ) -> dict:
+        spec: Dict[str, Any] = {
             "openapi": self.config.OPENAPI_VERSION,
             "info": {
                 **self.config.INFO,
@@ -470,7 +475,7 @@ class FlaskPydanticSpec:
             Mapping[str, Any], nested_alter(result, "$ref", _move_schema_reference)
         )
 
-    def _get_model_definitions(self, category=None) -> Dict[str, Any]:
+    def _get_model_definitions(self, category: Optional[str] = None) -> Dict[str, Any]:
         """
         handle nested models
         """
@@ -506,7 +511,7 @@ class FlaskPydanticSpec:
         else:
             return request_body
 
-    def register_class_view_apidoc(self, target):
+    def register_class_view_apidoc(self, target: Any) -> None:
         endpoint = target.__name__
         rules = self.app.url_map._rules_by_endpoint[endpoint]
         for rule in rules:

@@ -62,12 +62,20 @@ class FlaskPydanticSpec:
         self.models: Dict[str, Any] = {}
         if app:
             self.register(app)
-        self.class_view_api_info = dict()  # class view info when adding validate decorator
-        self.class_view_apispec = dict()  # convert class_view_api_info into openapi spec
-        self.routes_by_category = dict()  # routes openapi info by category as key in the dict
-        self._spec_by_category = dict()  # openapi spec by category
-        self._models_by_category = defaultdict(dict)  # model schemas by category
-        self.tags = dict()
+        self.class_view_api_info: Dict[
+            str, dict
+        ] = dict()  # class view info when adding validate decorator
+        self.class_view_apispec: Dict[
+            str, dict
+        ] = dict()  # convert class_view_api_info into openapi spec
+        self.routes_by_category: Dict[
+            str, dict
+        ] = dict()  # routes openapi info by category as key in the dict
+        self._spec_by_category: Dict[str, Mapping] = dict()  # openapi spec by category
+        self._models_by_category: Dict[str, dict] = defaultdict(
+            dict
+        )  # model schemas by category
+        self.tags: Dict[str, Mapping] = dict()
 
     def register(self, app: Flask) -> None:
         """
@@ -88,7 +96,7 @@ class FlaskPydanticSpec:
             self._spec = self._generate_spec()
         return self._spec
 
-    def spec_by_category(self, category) -> Mapping[str, Any]:
+    def spec_by_category(self, category: str) -> Mapping[str, Any]:
         """
         get OpenAPI spec by category
         :return:
@@ -124,9 +132,10 @@ class FlaskPydanticSpec:
             return False
 
     def bypass_unpublish(self, func: Callable) -> bool:
-        """ bypass unpublished APIs under publish_only mode"""
+        """bypass unpublished APIs under publish_only mode"""
         if self.config.MODE == "publish_only":
             return not getattr(func, "publish", False)
+        return False
 
     def validate(
         self,
@@ -181,7 +190,7 @@ class FlaskPydanticSpec:
             params = []
             if "." in func.__qualname__:
                 class_view = True
-                view_name, method = func.__qualname__.split(".")
+                view_name, *_, method = func.__qualname__.split(".")
                 if view_name not in self.class_view_api_info:
                     self.class_view_api_info[view_name] = {method: {}}
                 else:
@@ -205,13 +214,15 @@ class FlaskPydanticSpec:
                     else:
                         _model = model
                     if _model:
-                        self.models[_model.__name__] = self._get_open_api_schema(_model.schema())
+                        self.models[_model.__name__] = self._get_open_api_schema(
+                            _model.schema()
+                        )
                         self._models_by_category[category][
                             _model.__name__
                         ] = self._get_open_api_schema(_model.schema())
                     setattr(validation, name, model)
 
-                    if class_view:
+                    if class_view and _model:
                         model_schema = self._get_open_api_schema(_model.schema())
                         for param_name, schema in model_schema["properties"].items():
                             params.append(
@@ -219,7 +230,8 @@ class FlaskPydanticSpec:
                                     "name": param_name,
                                     "in": name,
                                     "schema": schema,
-                                    "required": param_name in model_schema.get("required", []),
+                                    "required": param_name
+                                    in model_schema.get("required", []),
                                 }
                             )
 
@@ -228,21 +240,25 @@ class FlaskPydanticSpec:
                         param for param in params if param["in"] == "query"
                     ]
                     if hasattr(validation, "body"):
-                        self.class_view_api_info[view_name][method]["requestBody"] = parse_request(
-                            validation
-                        )
+                        self.class_view_api_info[view_name][method][
+                            "requestBody"
+                        ] = parse_request(validation)
 
             if resp:
                 for model in resp.models:
                     if model:
                         assert not isinstance(model, RequestBase)
-                        self.models[model.__name__] = self._get_open_api_schema(model.schema())
+                        self.models[model.__name__] = self._get_open_api_schema(
+                            model.schema()
+                        )
                         self._models_by_category[category][
                             model.__name__
                         ] = self._get_open_api_schema(model.schema())
                         if class_view:
                             for k, v in resp.generate_spec().items():
-                                self.class_view_api_info[view_name][method]["responses"][k] = v
+                                self.class_view_api_info[view_name][method][
+                                    "responses"
+                                ][k] = v
                 setattr(validation, "resp", resp)
 
             if tags:
@@ -260,12 +276,17 @@ class FlaskPydanticSpec:
 
         return decorate_validation
 
-    def _generate_spec_common(self, routes, category=None):
-        spec = {
+    def _generate_spec_common(
+        self, routes: dict, category: Optional[str] = None
+    ) -> dict:
+        spec: Dict[str, Any] = {
             "openapi": self.config.OPENAPI_VERSION,
             "info": {
                 **self.config.INFO,
-                **{"title": self.config.TITLE, "version": self.config.VERSION,},
+                **{
+                    "title": self.config.TITLE,
+                    "version": self.config.VERSION,
+                },
             },
             "tags": list(self.tags.values()),
             "paths": {**routes},
@@ -321,10 +342,16 @@ class FlaskPydanticSpec:
                     operation_id = camelize(method.lower() + name, False)
                     desc = self.class_view_apispec[path][method.lower()]["description"]
                     func_tag = self.class_view_apispec[path][method.lower()]["tags"]
-                    query_parameters = self.class_view_apispec[path][method.lower()]["parameters"]
-                    path_parameters = [param for param in parameters if param["in"] == "path"]
+                    query_parameters = self.class_view_apispec[path][method.lower()][
+                        "parameters"
+                    ]
+                    path_parameters = [
+                        param for param in parameters if param["in"] == "path"
+                    ]
                     parameters = path_parameters + query_parameters
-                    responses = self.class_view_apispec[path][method.lower()]["responses"]
+                    responses = self.class_view_apispec[path][method.lower()][
+                        "responses"
+                    ]
                     request_body = self.class_view_apispec[path][method.lower()].get(
                         "requestBody", None
                     )
@@ -368,9 +395,9 @@ class FlaskPydanticSpec:
                     routes[path][method.lower()]["deprecated"] = True
 
                 if request_body:
-                    routes[path][method.lower()]["requestBody"] = self._parse_request_body(
-                        request_body
-                    )
+                    routes[path][method.lower()][
+                        "requestBody"
+                    ] = self._parse_request_body(request_body)
                     self.routes_by_category[category][path][method.lower()][
                         "requestBody"
                     ] = self._parse_request_body(request_body)
@@ -444,9 +471,11 @@ class FlaskPydanticSpec:
                 result[key] = self._validate_property(value)
             else:
                 result[key] = value
-        return cast(Mapping[str, Any], nested_alter(result, "$ref", _move_schema_reference))
+        return cast(
+            Mapping[str, Any], nested_alter(result, "$ref", _move_schema_reference)
+        )
 
-    def _get_model_definitions(self, category=None) -> Dict[str, Any]:
+    def _get_model_definitions(self, category: Optional[str] = None) -> Dict[str, Any]:
         """
         handle nested models
         """
@@ -476,11 +505,13 @@ class FlaskPydanticSpec:
         schema = request_body["content"][content_type]["schema"]
         if "$ref" not in schema.keys():
             # handle inline schema definitions
-            return {"content": {content_type: {"schema": self._get_open_api_schema(schema)}}}
+            return {
+                "content": {content_type: {"schema": self._get_open_api_schema(schema)}}
+            }
         else:
             return request_body
 
-    def register_class_view_apidoc(self, target):
+    def register_class_view_apidoc(self, target: Any) -> None:
         endpoint = target.__name__
         rules = self.app.url_map._rules_by_endpoint[endpoint]
         for rule in rules:

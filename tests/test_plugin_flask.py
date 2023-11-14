@@ -1,3 +1,4 @@
+from datetime import datetime
 from io import BytesIO
 from random import randint
 import gzip
@@ -155,7 +156,13 @@ def test_sending_file(client):
     file = FileStorage(BytesIO(b"abcde"), filename="test.jpg", name="test.jpg")
     resp = client.post(
         "/api/file",
-        data={"file": file, "file_name": "another_test.jpg"},
+        data={
+            "file": file,
+            "file_name": "another_test.jpg",
+            "data": json.dumps(
+                {"type": "foo", "created_at": str(datetime.now().date())}
+            ),
+        },
         content_type="multipart/form-data",
     )
     assert resp.status_code == 200

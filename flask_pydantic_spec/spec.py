@@ -359,7 +359,9 @@ class FlaskPydanticSpec:
                     )
                     publish = self.class_view_apispec[path][method.lower()]["publish"]
                     category = self.class_view_apispec[path][method.lower()]["category"]
-                    no_api_key = self.class_view_apispec[path][method.lower()].get("no_api_key", False)
+                    no_api_key = self.class_view_apispec[path][method.lower()].get(
+                        "no_api_key", False
+                    )
                     if self.config.MODE == "publish_only" and not publish:
                         continue
                 else:
@@ -389,7 +391,9 @@ class FlaskPydanticSpec:
                 if path not in self.routes_by_category[category]:
                     self.routes_by_category[category][path] = dict()
 
-                self.routes_by_category[category][path][method.lower()] = path_method_info
+                self.routes_by_category[category][path][
+                    method.lower()
+                ] = path_method_info
                 if hasattr(func, "deprecated"):
                     routes[path][method.lower()]["deprecated"] = True
 

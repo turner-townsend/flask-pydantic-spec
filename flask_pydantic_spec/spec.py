@@ -150,7 +150,7 @@ class FlaskPydanticSpec:
         after: Optional[Callable] = None,
         publish: bool = False,
         category: str = "default",
-        no_api_key: bool = True,
+        no_api_key: bool = False,
     ) -> Callable:
         """
         - validate query, body, headers in request

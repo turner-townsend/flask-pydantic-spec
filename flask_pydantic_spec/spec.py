@@ -379,7 +379,7 @@ class FlaskPydanticSpec:
                     "tags": func_tag,
                     "parameters": parameters,
                     "responses": responses,
-                    **({} if no_api_key else {"security": []}),
+                    **({"security": []} if no_api_key else {}),
                 }
                 routes[path][method.lower()] = path_method_info
 

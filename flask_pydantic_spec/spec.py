@@ -150,6 +150,7 @@ class FlaskPydanticSpec:
         after: Optional[Callable] = None,
         publish: bool = False,
         category: str = "default",
+        no_api_key: bool = False,
     ) -> Callable:
         """
         - validate query, body, headers in request
@@ -203,6 +204,7 @@ class FlaskPydanticSpec:
                 self.class_view_api_info[view_name][method]["responses"] = {
                     "200": {"description": "ok"}
                 }
+                self.class_view_api_info[view_name][method]["no_api_key"] = no_api_key
 
             # register
             for name, model in zip(
@@ -357,6 +359,9 @@ class FlaskPydanticSpec:
                     )
                     publish = self.class_view_apispec[path][method.lower()]["publish"]
                     category = self.class_view_apispec[path][method.lower()]["category"]
+                    no_api_key = self.class_view_apispec[path][method.lower()].get(
+                        "no_api_key", False
+                    )
                     if self.config.MODE == "publish_only" and not publish:
                         continue
                 else:
@@ -364,17 +369,21 @@ class FlaskPydanticSpec:
                     if self.bypass_unpublish(func):
                         continue
                     category = getattr(func, "category", "default")
+                    no_api_key = getattr(func, "no_api_key", False)
 
                 if path not in routes:
                     routes[path] = dict()
-                routes[path][method.lower()] = {
+
+                path_method_info = {
                     "summary": summary or f"{name} <{method}>",
                     "operationId": operation_id,
                     "description": desc or "",
                     "tags": func_tag,
                     "parameters": parameters,
                     "responses": responses,
+                    **({"security": []} if no_api_key else {}),
                 }
+                routes[path][method.lower()] = path_method_info
 
                 if category not in self.routes_by_category:
                     self.routes_by_category[category] = dict()
@@ -382,15 +391,9 @@ class FlaskPydanticSpec:
                 if path not in self.routes_by_category[category]:
                     self.routes_by_category[category][path] = dict()
 
-                self.routes_by_category[category][path][method.lower()] = {
-                    "summary": summary or f"{name} <{method}>",
-                    "operationId": operation_id,
-                    "description": desc or "",
-                    "tags": func_tag,
-                    "parameters": parameters,
-                    "responses": responses,
-                }
-
+                self.routes_by_category[category][path][
+                    method.lower()
+                ] = path_method_info
                 if hasattr(func, "deprecated"):
                     routes[path][method.lower()]["deprecated"] = True
 

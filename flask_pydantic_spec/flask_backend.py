@@ -148,9 +148,16 @@ class FlaskBackend:
             else:
                 parsed_body = request.get_json(silent=True) or {}
         elif request.content_type and "multipart/form-data" in request.content_type:
-            parsed_body = parse_multi_dict(request.form) if request.form else {}
+            # It's possible there is a binary json object in the files - iterate through and find it
+            parsed_body = {}
+            for key, value in request.files.items():
+                if value.mimetype == "application/json":
+                    parsed_body[key] = json.loads(value.stream.read().decode(encoding="utf-8"))
+            # Finally, find any JSON objects in the form and add them to the body
+            parsed_body.update(parse_multi_dict(request.form) or {})
         else:
             parsed_body = request.get_data() or {}
+
         req_headers: Optional[Headers] = request.headers or None
         req_cookies: Optional[Mapping[str, str]] = request.cookies or None
         setattr(
@@ -158,9 +165,11 @@ class FlaskBackend:
             "context",
             Context(
                 query=query.parse_obj(req_query) if query else None,
-                body=getattr(body, "model").parse_obj(parsed_body)
-                if body and getattr(body, "model")
-                else None,
+                body=(
+                    getattr(body, "model").parse_obj(parsed_body)
+                    if body and getattr(body, "model")
+                    else None
+                ),
                 headers=headers.parse_obj(req_headers or {}) if headers else None,
                 cookies=cookies.parse_obj(req_cookies or {}) if cookies else None,
             ),

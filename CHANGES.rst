@@ -1,5 +1,13 @@
 .. currentmodule:: flask-pydantic-spec
 
+VERSION 0.6.0
+-------------
+
+Release 2024-01-12
+
+- Add ability to parse binary JSON encoded parts of multipart/form-data requests
+
+
 VERSION 0.5.0
 -------------
 

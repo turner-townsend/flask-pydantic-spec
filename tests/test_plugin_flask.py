@@ -11,6 +11,7 @@ from werkzeug.datastructures import FileStorage
 from werkzeug.test import Client
 
 from flask_pydantic_spec.types import Response, MultipartFormRequest
+from flask_pydantic_spec.compat import IS_PYDANTIC_2
 from flask_pydantic_spec import FlaskPydanticSpec
 
 from .common import (
@@ -81,7 +82,7 @@ def get_users():
 def user_score(name):
     score = [randint(0, request.context.body.limit) for _ in range(5)]
     score.sort(reverse=request.context.query.order if request.context.query.order else False)
-    assert request.context.cookies.pub == "abcdefg"
+    assert request.context.cookies.pub == ["abcdefg"]
     assert request.cookies["pub"] == "abcdefg"
     return jsonify(name=request.context.body.name, score=score)
 
@@ -157,6 +158,7 @@ def test_flask_validate(client: Client):
         data=json.dumps(dict(name="flask", limit=10)),
         content_type="application/json",
     )
+    assert resp.status_code == 200, resp.json
     assert resp.json["score"] == sorted(resp.json["score"], reverse=False)
 
 
@@ -265,4 +267,17 @@ def test_flask_post_gzip_failure(client: Client):
         },
     )
     assert resp.status_code == 400
-    assert resp.json == [{"loc": ["limit"], "msg": "field required", "type": "value_error.missing"}]
+    if IS_PYDANTIC_2:
+        assert resp.json == [
+            {
+                "loc": ["limit"],
+                "msg": "Field required",
+                "type": "missing",
+                "input": {"name": "flask"},
+                "url": "https://errors.pydantic.dev/2.6/v/missing",
+            }
+        ]
+    else:
+        assert resp.json == [
+            {"loc": ["limit"], "msg": "field required", "type": "value_error.missing"}
+        ]

@@ -4,7 +4,7 @@ from typing import Optional, List
 
 import pytest
 from flask import Flask
-from openapi_spec_validator import validate_v3_spec
+from openapi_spec_validator import openapi_v30_spec_validator, openapi_v31_spec_validator
 from pydantic import BaseModel, StrictFloat, Field
 
 from flask_pydantic_spec import FlaskPydanticSpec
@@ -14,12 +14,13 @@ from flask_pydantic_spec.flask_backend import FlaskBackend
 from flask_pydantic_spec.types import FileResponse, Request, MultipartFormRequest
 from flask_pydantic_spec import FlaskPydanticSpec
 from flask_pydantic_spec.config import Config
+from flask_pydantic_spec.compat import IS_PYDANTIC_2
 
 from .common import ExampleConverter, UnknownConverter, get_paths
 
 
 class ExampleModel(BaseModel):
-    name: str = Field(strip_whitespace=True)
+    name: str
     age: int
     height: StrictFloat
 
@@ -34,8 +35,16 @@ class ExampleQuery(BaseModel):
     type: Optional[TypeEnum]
 
 
-class ExampleNestedList(BaseModel):
-    __root__: List[ExampleModel]
+if IS_PYDANTIC_2:
+    from pydantic import RootModel
+
+    class ExampleNestedList(RootModel):
+        root: List[ExampleModel]
+
+else:
+
+    class ExampleNestedList(BaseModel):
+        __root__: List[ExampleModel]
 
 
 class ExampleNestedModel(BaseModel):
@@ -122,12 +131,12 @@ def app(api: FlaskPydanticSpec, api_strict: FlaskPydanticSpec) -> Flask:
     app.url_map.converters["unknown"] = UnknownConverter
 
     @app.route("/foo")
-    @api.validate()
+    @api.validate(resp=Response(HTTP_200=None))
     def foo():
         pass
 
     @app.route("/bar")
-    @api_strict.validate()
+    @api_strict.validate(resp=Response(HTTP_200=None))
     def bar():
         pass
 
@@ -155,7 +164,10 @@ def app(api: FlaskPydanticSpec, api_strict: FlaskPydanticSpec) -> Flask:
         pass
 
     @app.route("/query", methods=["GET"])
-    @api.validate(query=ExampleQuery)
+    @api.validate(
+        query=ExampleQuery,
+        resp=Response(HTTP_200=None),
+    )
     def get_query():
         pass
 
@@ -173,7 +185,10 @@ def app(api: FlaskPydanticSpec, api_strict: FlaskPydanticSpec) -> Flask:
         pass
 
     @app.route("/multipart-file", methods=["POST"])
-    @api.validate(body=MultipartFormRequest(ExampleModel), resp=Response(HTTP_200=ExampleModel))
+    @api.validate(
+        body=MultipartFormRequest(ExampleModel),
+        resp=Response(HTTP_200=ExampleModel),
+    )
     def post_multipart_form():
         pass
 

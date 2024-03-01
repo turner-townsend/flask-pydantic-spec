@@ -3,7 +3,8 @@ from typing import Optional, Type, Iterable, Mapping, Any, Dict, NamedTuple
 
 from pydantic import BaseModel
 
-from flask_pydantic_spec.constants import OPENAPI_SCHEMA_TEMPLATE
+from .constants import OPENAPI_SCHEMA_TEMPLATE
+from .compat import model_json_schema
 
 
 class ResponseBase:
@@ -204,7 +205,11 @@ class MultipartFormRequest(RequestBase):
         return self.model is not None
 
     def generate_spec(self) -> Mapping[str, Any]:
-        model_spec = self.model.schema(ref_template=OPENAPI_SCHEMA_TEMPLATE) if self.model else None
+        model_spec = (
+            model_json_schema(self.model, ref_template=OPENAPI_SCHEMA_TEMPLATE)
+            if self.model
+            else None
+        )
         if model_spec:
             additional_properties = model_spec["properties"]
         else:

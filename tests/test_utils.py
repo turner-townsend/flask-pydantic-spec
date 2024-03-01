@@ -10,6 +10,7 @@ from flask_pydantic_spec.utils import (
 )
 from flask_pydantic_spec.spec import FlaskPydanticSpec
 from flask_pydantic_spec.types import Response, Request, _parse_code
+from flask_pydantic_spec.compat import model_json_schema
 
 from .common import DemoModel
 
@@ -96,7 +97,7 @@ def test_parse_request():
 
 
 def test_parse_params():
-    models = {"DemoModel": DemoModel.schema()}
+    models = {"DemoModel": model_json_schema(DemoModel)}
     assert parse_params(demo_func, [], models) == []
     params = parse_params(demo_class.demo_method, [], models)
     assert len(params) == 3

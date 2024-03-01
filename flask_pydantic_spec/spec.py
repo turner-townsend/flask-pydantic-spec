@@ -10,6 +10,7 @@ from inflection import camelize
 from . import Request
 from .config import Config
 from .constants import OPENAPI_SCHEMA_TEMPLATE
+from .compat import model_json_schema, model_fields
 from .flask_backend import FlaskBackend
 from .types import RequestBase, ResponseBase
 from .utils import (
@@ -100,17 +101,18 @@ class FlaskPydanticSpec:
             return True
         else:
             decorator = getattr(func, "_decorator", None)
-            if decorator and decorator != self:
+            if not decorator or decorator != self:
                 return True
             return False
 
     def validate(
         self,
+        *,
         query: Optional[Type[BaseModel]] = None,
         body: Optional[Union[RequestBase, Type[BaseModel]]] = None,
         headers: Optional[Type[BaseModel]] = None,
         cookies: Optional[Type[BaseModel]] = None,
-        resp: Optional[ResponseBase] = None,
+        resp: ResponseBase,
         tags: Iterable[str] = (),
         deprecated: bool = False,
         before: Optional[Callable] = None,
@@ -162,7 +164,7 @@ class FlaskPydanticSpec:
                         _model = model
                     if _model:
                         self.models[_model.__name__] = self._get_open_api_schema(
-                            _model.schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
+                            model_json_schema(_model, ref_template=OPENAPI_SCHEMA_TEMPLATE)
                         )
                     setattr(validation, name, model)
 
@@ -171,7 +173,7 @@ class FlaskPydanticSpec:
                     if model:
                         assert not isinstance(model, RequestBase)
                         self.models[model.__name__] = self._get_open_api_schema(
-                            model.schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
+                            model_json_schema(model, ref_template=OPENAPI_SCHEMA_TEMPLATE)
                         )
                 setattr(validation, "resp", resp)
 

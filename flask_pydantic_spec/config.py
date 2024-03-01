@@ -1,5 +1,6 @@
 import logging
 from typing import Set, Optional, Dict, Any, Mapping, List
+from .compat import IS_PYDANTIC_2
 
 
 class Config:
@@ -18,7 +19,7 @@ class Config:
     def __init__(self, **kwargs: Dict[str, Any]) -> None:
         self.PATH: str = "apidoc"
         self.FILENAME: str = "openapi.json"
-        self.OPENAPI_VERSION: str = "3.0.3"
+        self.OPENAPI_VERSION: str = "3.1.0" if IS_PYDANTIC_2 else "3.0.3"
         self.UI: str = "redoc"
         self._SUPPORT_UI: Set[str] = {"redoc", "swagger"}
         self.MODE: str = "normal"

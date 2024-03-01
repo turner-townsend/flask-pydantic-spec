@@ -2,7 +2,8 @@ from datetime import date
 from enum import IntEnum, Enum
 from typing import List, Optional
 
-from pydantic import BaseModel, root_validator
+from pydantic import BaseModel
+from flask_pydantic_spec.compat import IS_PYDANTIC_2
 from werkzeug.routing import BaseConverter
 
 
@@ -12,7 +13,7 @@ class Order(IntEnum):
 
 
 class Query(BaseModel):
-    order: Optional[Order]
+    order: Optional[Order] = None
 
 
 class QueryParams(BaseModel):
@@ -42,16 +43,30 @@ class Language(str, Enum):
     zh = "zh-CN"
 
 
-class Headers(BaseModel):
-    lang: Language
+if IS_PYDANTIC_2:
+    from pydantic import model_validator
 
-    @root_validator(pre=True, allow_reuse=True)
-    def lower_keys(cls, values):
-        return {key.lower(): value for key, value in values.items()}
+    class Headers(BaseModel):
+        lang: Language
+
+        @model_validator(mode="before")
+        @classmethod
+        def lower_keys(cls, values):
+            return {key.lower(): value for key, value in values.items()}
+
+else:
+    from pydantic import root_validator
+
+    class Headers(BaseModel):
+        lang: Language
+
+        @root_validator(pre=True, allow_reuse=True)
+        def lower_keys(cls, values):
+            return {key.lower(): value for key, value in values.items()}
 
 
 class Cookies(BaseModel):
-    pub: str
+    pub: List[str]
 
 
 class DemoModel(BaseModel):

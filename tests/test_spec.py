@@ -261,6 +261,8 @@ def test_valid_openapi_spec(app: Flask, api: FlaskPydanticSpec):
     api.register(app)
     spec = api.spec
 
+    breakpoint()
+    openapi_v31_spec_validator.validate(spec)
     validate_v3_spec(spec)
 
 

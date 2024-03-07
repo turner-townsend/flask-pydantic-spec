@@ -297,7 +297,7 @@ class FlaskPydanticSpec:
             "info": {
                 **self.config.INFO,
                 **{
-                    "title": category_titles.get(category, self.config.TITLE),
+                    "title": category_titles.get(category, self.config.TITLE) if category else self.config.TITLE,
                     "version": self.config.VERSION,
                 },
             },

@@ -28,6 +28,17 @@ def _move_schema_reference(reference: str) -> str:
     return reference
 
 
+category_titles = {
+    "sensor_v1": "Sensor API",
+    "camera_v1": "Camera API",
+    "core_v1": "Core API",
+    "guest_v1": "Guest API",
+    "alarms_v1": "Alarms API",
+    "access_v1": "Access API",
+    "viewing_station_v1": "Viewing Station API",
+}
+
+
 class FlaskPydanticSpec:
     """
     Interface
@@ -286,7 +297,11 @@ class FlaskPydanticSpec:
             "info": {
                 **self.config.INFO,
                 **{
-                    "title": self.config.TITLE,
+                    "title": (
+                        category_titles.get(category, self.config.TITLE)
+                        if category
+                        else self.config.TITLE
+                    ),
                     "version": self.config.VERSION,
                 },
             },

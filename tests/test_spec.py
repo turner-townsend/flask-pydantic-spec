@@ -5,11 +5,9 @@ from typing import Optional, List
 import pytest
 from flask import Flask
 from openapi_spec_validator import validate_v3_spec
-from pydantic import BaseModel, StrictFloat, Field
+from pydantic import BaseModel, StrictFloat, Field, RootModel
 
-from flask_pydantic_spec import FlaskPydanticSpec
 from flask_pydantic_spec import Response
-from flask_pydantic_spec.config import Config
 from flask_pydantic_spec.flask_backend import FlaskBackend
 from flask_pydantic_spec.types import FileResponse, Request, MultipartFormRequest
 from flask_pydantic_spec import FlaskPydanticSpec
@@ -19,7 +17,7 @@ from .common import ExampleConverter, UnknownConverter, get_paths
 
 
 class ExampleModel(BaseModel):
-    name: str = Field(strip_whitespace=True)
+    name: str = Field(json_schema_extra={"strip_whitespace": True})
     age: int
     height: StrictFloat
 
@@ -31,11 +29,10 @@ class TypeEnum(str, Enum):
 
 class ExampleQuery(BaseModel):
     query: str
-    type: Optional[TypeEnum]
+    type: Optional[TypeEnum] = None
 
 
-class ExampleNestedList(BaseModel):
-    __root__: List[ExampleModel]
+ExampleNestedList = RootModel[List[ExampleModel]]
 
 
 class ExampleNestedModel(BaseModel):
@@ -245,7 +242,7 @@ def test_two_endpoints_with_the_same_path(app: Flask, api: FlaskPydanticSpec):
 def test_valid_openapi_spec(app: Flask, api: FlaskPydanticSpec):
     api.register(app)
     spec = api.spec
-
+    breakpoint()
     validate_v3_spec(spec)
 
 

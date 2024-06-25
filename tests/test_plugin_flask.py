@@ -150,6 +150,7 @@ def test_flask_validate(client: Client):
         data=json.dumps(dict(name="flask", limit=10)),
         content_type="application/json",
     )
+    assert resp.status_code == 200
     assert resp.json["score"] == sorted(resp.json["score"], reverse=False)
 
     resp = client.post(
@@ -157,6 +158,7 @@ def test_flask_validate(client: Client):
         data=json.dumps(dict(name="flask", limit=10)),
         content_type="application/json",
     )
+    assert resp.status_code == 200
     assert resp.json["score"] == sorted(resp.json["score"], reverse=False)
 
 
@@ -265,4 +267,12 @@ def test_flask_post_gzip_failure(client: Client):
         },
     )
     assert resp.status_code == 400
-    assert resp.json == [{"loc": ["limit"], "msg": "field required", "type": "value_error.missing"}]
+    assert resp.json == [
+        {
+            "input": {"name": "flask"},
+            "loc": ["limit"],
+            "msg": "Field required",
+            "type": "missing",
+            "url": "https://errors.pydantic.dev/2.7/v/missing",
+        }
+    ]

@@ -164,14 +164,14 @@ class FlaskBackend:
             request,
             "context",
             Context(
-                query=query.parse_obj(req_query) if query else None,
+                query=query.model_validate(req_query) if query else None,
                 body=(
-                    getattr(body, "model").parse_obj(parsed_body)
+                    getattr(body, "model").model_validate(parsed_body)
                     if body and getattr(body, "model")
                     else None
                 ),
-                headers=headers.parse_obj(req_headers or {}) if headers else None,
-                cookies=cookies.parse_obj(req_cookies or {}) if cookies else None,
+                headers=headers.model_validate(dict(req_headers) or {}) if headers else None,
+                cookies=cookies.model_validate(dict(req_cookies) or {}) if cookies else None,
             ),
         )
 
@@ -193,7 +193,9 @@ class FlaskBackend:
             self.request_validation(request, query, body, headers, cookies)
         except ValidationError as err:
             req_validation_error = err
-            response = make_response(jsonify(err.errors()), self.config.VALIDATION_ERROR_CODE)
+            response = make_response(
+                jsonify(json.loads(err.json())), self.config.VALIDATION_ERROR_CODE
+            )
 
         before(request, response, req_validation_error, None)
         if req_validation_error:
@@ -205,7 +207,7 @@ class FlaskBackend:
             model = resp.find_model(response.status_code)
             if model:
                 try:
-                    model.validate(response.get_json())
+                    model.model_validate(response.get_json())
                 except ValidationError as err:
                     resp_validation_error = err
                     response = make_response(jsonify({"message": "response validation error"}), 500)

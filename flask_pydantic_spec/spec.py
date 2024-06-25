@@ -162,7 +162,7 @@ class FlaskPydanticSpec:
                         _model = model
                     if _model:
                         self.models[_model.__name__] = self._get_open_api_schema(
-                            _model.schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
+                            _model.model_json_schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
                         )
                     setattr(validation, name, model)
 
@@ -171,7 +171,7 @@ class FlaskPydanticSpec:
                     if model:
                         assert not isinstance(model, RequestBase)
                         self.models[model.__name__] = self._get_open_api_schema(
-                            model.schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
+                            model.model_json_schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
                         )
                 setattr(validation, "resp", resp)
 

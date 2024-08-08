@@ -158,8 +158,8 @@ class FlaskBackend:
         else:
             parsed_body = request.get_data() or {}
 
-        req_headers: Optional[Headers] = request.headers or None
-        req_cookies: Optional[Mapping[str, str]] = request.cookies or None
+        req_headers: Headers = request.headers
+        req_cookies: Mapping[str, str] = request.cookies
         setattr(
             request,
             "context",
@@ -170,8 +170,8 @@ class FlaskBackend:
                     if body and getattr(body, "model")
                     else None
                 ),
-                headers=headers.model_validate(dict(req_headers) or {}) if headers else None,
-                cookies=cookies.model_validate(dict(req_cookies) or {}) if cookies else None,
+                headers=headers.model_validate(dict(req_headers)) if headers else None,
+                cookies=cookies.model_validate(dict(req_cookies)) if cookies else None,
             ),
         )
 

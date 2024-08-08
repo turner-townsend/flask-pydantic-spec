@@ -44,11 +44,11 @@ app = Flask(__name__)
 
 
 @app.route("/ping")
-@api.validate(headers=Headers, tags=["test", "health"])
+@api.validate(headers=Headers, tags=["test", "health"], resp=Response(HTTP_200=Resp))
 def ping():
     """summary
     description"""
-    return jsonify(msg="pong")
+    return jsonify(name="Test", score=[10])
 
 
 @app.route("/api/user", methods=["GET"])
@@ -120,12 +120,12 @@ def test_flask_validate(client: Client):
     assert resp.headers.get("X-Error") == "Validation Error"
 
     resp = client.get("/ping", headers={"lang": "en-US"})
-    assert resp.json == {"msg": "pong"}
+    assert resp.json == {"name": "Test", "score": [10]}
     assert resp.headers.get("X-Error") is None
     assert resp.headers.get("X-Validation") == "Pass"
 
     resp = client.get("/ping", headers={"lang": "en-US", "Content-Type": "application/json"})
-    assert resp.json == {"msg": "pong"}
+    assert resp.json == {"name": "Test", "score": [10]}
     assert resp.headers.get("X-Error") is None
     assert resp.headers.get("X-Validation") == "Pass"
 
@@ -273,6 +273,6 @@ def test_flask_post_gzip_failure(client: Client):
             "loc": ["limit"],
             "msg": "Field required",
             "type": "missing",
-            "url": "https://errors.pydantic.dev/2.7/v/missing",
+            "url": "https://errors.pydantic.dev/2.8/v/missing",
         }
     ]

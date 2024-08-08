@@ -33,7 +33,7 @@ def demo_func():
 
 
 class DemoClass:
-    @api.validate(query=DemoModel)
+    @api.validate(query=DemoModel, resp=Response(HTTP_200=DemoModel))
     def demo_method(self):
         """summary
         description
@@ -74,7 +74,13 @@ def test_has_model():
 
 def test_parse_resp():
     assert parse_resp(undecorated_func, 422) == {}
-    assert parse_resp(demo_class.demo_method, 422) == {"422": {"description": "Validation Error"}}
+    assert parse_resp(demo_class.demo_method, 422) == {
+        "200": {
+            "description": "OK",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DemoModel"}}},
+        },
+        "422": {"description": "Validation Error"},
+    }
     resp_spec = parse_resp(demo_func, 422)
     assert resp_spec["422"]["description"] == "Validation Error"
     assert (

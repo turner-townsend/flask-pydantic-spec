@@ -84,25 +84,14 @@ class FlaskPydanticSpec:
         return self._spec
 
     def bypass(self, func: Callable) -> bool:
-        """
-        bypass rules for routes (mode defined in config)
+        """Bypass routes not decorated by FlaskPydanticSpec
 
-        :normal:    collect all the routes that are not decorated by other
-                    `SpecTree` instance
-        :greedy:    collect all the routes
-        :strict:    collect all the routes decorated by this instance
+        In OpenAPI 3.1, it's not valid to have a route that doesn't have at least one response attached
         """
-        if self.config.MODE == "greedy":
-            return False
-        elif self.config.MODE == "strict":
-            if getattr(func, "_decorator", None) == self:
-                return False
+        decorator = getattr(func, "_decorator", None)
+        if decorator and decorator != self:
             return True
-        else:
-            decorator = getattr(func, "_decorator", None)
-            if decorator and decorator != self:
-                return True
-            return False
+        return False
 
     def validate(
         self,
@@ -161,19 +150,27 @@ class FlaskPydanticSpec:
                     else:
                         _model = model
                     if _model:
-                        self.models[_model.__name__] = self._get_open_api_schema(
-                            _model.model_json_schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
+                        self.models[_model.__name__.replace("[", "_").replace("]", "_")] = (
+                            self._get_open_api_schema(
+                                _model.model_json_schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
+                            )
                         )
                     setattr(validation, name, model)
 
-            if resp:
-                for model in resp.models:
-                    if model:
-                        assert not isinstance(model, RequestBase)
-                        self.models[model.__name__] = self._get_open_api_schema(
-                            model.model_json_schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
+            if resp is None:
+                raise RuntimeError("must provide at least one response body")
+
+            for model in resp.models:
+                if model:
+                    assert not isinstance(model, RequestBase)
+                    self.models[model.__name__.replace("[", "_").replace("]", "_")] = (
+                        self._get_open_api_schema(
+                            model.model_json_schema(
+                                mode="serialization", ref_template=OPENAPI_SCHEMA_TEMPLATE
+                            )
                         )
-                setattr(validation, "resp", resp)
+                    )
+            setattr(validation, "resp", resp)
 
             if tags:
                 setattr(validation, "tags", tags)
@@ -310,12 +307,12 @@ class FlaskPydanticSpec:
             if model not in definitions.keys():
                 definitions[model] = deepcopy(schema)
 
-            if "definitions" in schema:
-                for key, value in schema["definitions"].items():
+            if "$defs" in schema:
+                for key, value in schema["$defs"].items():
                     definitions[key] = self._get_open_api_schema(value)
-                del schema["definitions"]
-                if "definitions" in definitions[model]:
-                    del definitions[model]["definitions"]
+                del schema["$defs"]
+                if "$defs" in definitions[model]:
+                    del definitions[model]["$defs"]
 
         return definitions
 

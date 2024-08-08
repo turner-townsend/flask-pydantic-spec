@@ -116,7 +116,9 @@ class Response(ResponseBase):
 
     @staticmethod
     def get_schema(model: Type[BaseModel], is_list: bool = False) -> Mapping[str, Any]:
-        ref_schema = {"$ref": f"#/components/schemas/{model.__name__}"}
+        ref_schema = {
+            "$ref": f"#/components/schemas/{model.__name__.replace('[', '_').replace(']', '_')}"
+        }
         if is_list:
             return {"schema": {"type": "array", "items": ref_schema}}
         return {"schema": ref_schema}
@@ -182,7 +184,9 @@ class Request(RequestBase):
             return {
                 "content": {
                     self.content_type: {
-                        "schema": {"$ref": f"#/components/schemas/{self.model.__name__}"}
+                        "schema": {
+                            "$ref": f"#/components/schemas/{self.model.__name__.replace('[', '_').replace(']', '_')}"
+                        }
                     }
                 }
             }

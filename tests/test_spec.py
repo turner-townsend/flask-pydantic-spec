@@ -4,16 +4,15 @@ from typing import Optional, List
 
 import pytest
 from flask import Flask
-from openapi_spec_validator import validate_v3_spec
+from openapi_spec_validator import openapi_v31_spec_validator
 from pydantic import BaseModel, StrictFloat, Field, RootModel
 
 from flask_pydantic_spec import Response
-from flask_pydantic_spec.flask_backend import FlaskBackend
 from flask_pydantic_spec.types import FileResponse, Request, MultipartFormRequest
 from flask_pydantic_spec import FlaskPydanticSpec
 from flask_pydantic_spec.config import Config
 
-from .common import ExampleConverter, UnknownConverter, get_paths
+from .common import ExampleConverter, UnknownConverter
 
 
 class ExampleModel(BaseModel):
@@ -68,21 +67,6 @@ def api(name) -> FlaskPydanticSpec:
     )
 
 
-@pytest.fixture
-def api_strict(name):
-    return FlaskPydanticSpec(name, mode="strict")
-
-
-@pytest.fixture
-def api_greedy(name):
-    return FlaskPydanticSpec(name, mode="greedy")
-
-
-@pytest.fixture
-def api_customize_backend():
-    return FlaskPydanticSpec(backend=FlaskBackend)
-
-
 def test_spectree_init():
     spec = FlaskPydanticSpec(path="docs")
     conf = Config()
@@ -113,23 +97,14 @@ def test_spec_generate(name, empty_app):
 
 
 @pytest.fixture
-def app(api: FlaskPydanticSpec, api_strict: FlaskPydanticSpec) -> Flask:
+def app(api: FlaskPydanticSpec) -> Flask:
     app = Flask(__name__)
     app.url_map.converters["example"] = ExampleConverter
     app.url_map.converters["unknown"] = UnknownConverter
 
     @app.route("/foo")
-    @api.validate()
+    @api.validate(resp=Response(HTTP_200=ExampleModel))
     def foo():
-        pass
-
-    @app.route("/bar")
-    @api_strict.validate()
-    def bar():
-        pass
-
-    @app.route("/lone", methods=["GET"])
-    def lone_get():
         pass
 
     @app.route("/lone", methods=["POST"])
@@ -152,7 +127,7 @@ def app(api: FlaskPydanticSpec, api_strict: FlaskPydanticSpec) -> Flask:
         pass
 
     @app.route("/query", methods=["GET"])
-    @api.validate(query=ExampleQuery)
+    @api.validate(query=ExampleQuery, resp=Response(HTTP_200=List[ExampleModel]))
     def get_query():
         pass
 
@@ -164,7 +139,7 @@ def app(api: FlaskPydanticSpec, api_strict: FlaskPydanticSpec) -> Flask:
     @app.route("/file", methods=["POST"])
     @api.validate(
         body=Request(content_type="application/octet-stream"),
-        resp=Response(HTTP_200=None),
+        resp=FileResponse(),
     )
     def post_file():
         pass
@@ -175,59 +150,11 @@ def app(api: FlaskPydanticSpec, api_strict: FlaskPydanticSpec) -> Flask:
         pass
 
     @app.route("/enum/<example:example>", methods=["GET"])
-    @api.validate(resp=Response(HTTP_200=None))
+    @api.validate(resp=Response(HTTP_200=ExampleModel))
     def get_enum(example):
         pass
 
     return app
-
-
-@pytest.mark.parametrize(
-    ("spec", "paths"),
-    [
-        (
-            "api",
-            [
-                "/enum/{example}",
-                "/file",
-                "/foo",
-                "/lone",
-                "/multipart-file",
-                "/query",
-            ],
-        ),
-        (
-            "api_greedy",
-            [
-                "/bar",
-                "/enum/{example}",
-                "/file",
-                "/foo",
-                "/lone",
-                "/multipart-file",
-                "/query",
-            ],
-        ),
-        (
-            "api_customize_backend",
-            ["/lone"],
-        ),
-        (
-            "api_strict",
-            ["/bar"],
-        ),
-    ],
-)
-def test_spec_bypass_mode(
-    request,
-    app: Flask,
-    spec: str,
-    paths: List[str],
-):
-    api = request.getfixturevalue(spec)
-
-    api.register(app)
-    assert get_paths(api.spec) == paths
 
 
 def test_two_endpoints_with_the_same_path(app: Flask, api: FlaskPydanticSpec):
@@ -236,14 +163,14 @@ def test_two_endpoints_with_the_same_path(app: Flask, api: FlaskPydanticSpec):
 
     http_methods = list(spec["paths"]["/lone"].keys())
     http_methods.sort()
-    assert http_methods == ["get", "patch", "post"]
+    assert http_methods == ["patch", "post"]
 
 
 def test_valid_openapi_spec(app: Flask, api: FlaskPydanticSpec):
     api.register(app)
     spec = api.spec
-    breakpoint()
-    validate_v3_spec(spec)
+
+    openapi_v31_spec_validator.validate(spec)
 
 
 def test_openapi_tags(app: Flask, api: FlaskPydanticSpec):
@@ -259,14 +186,16 @@ def test_openapi_deprecated(app: Flask, api: FlaskPydanticSpec):
     spec = api.spec
 
     assert spec["paths"]["/lone"]["post"]["deprecated"] is True
-    assert "deprecated" not in spec["paths"]["/lone"]["get"]
+    assert "deprecated" not in spec["paths"]["/lone"]["patch"]
 
 
 def test_flat_array_schemas(app: Flask, api: FlaskPydanticSpec):
     api.register(app)
     spec = api.spec
-
-    assert spec["components"]["schemas"][ExampleNestedList.__name__].get("items") is not None
+    assert (
+        spec["components"]["schemas"]["RootModel_List_tests.test_spec.ExampleModel__"].get("items")
+        is not None
+    )
 
 
 @pytest.mark.parametrize(

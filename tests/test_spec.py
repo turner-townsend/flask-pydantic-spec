@@ -4,7 +4,7 @@ from typing import Optional, List
 
 import pytest
 from flask import Flask
-from openapi_spec_validator import openapi_v31_spec_validator
+from openapi_spec_validator import openapi_v31_spec_validator, OpenAPIV31SpecValidator
 from pydantic import BaseModel, StrictFloat, Field, RootModel
 
 from flask_pydantic_spec import Response
@@ -170,7 +170,7 @@ def test_valid_openapi_spec(app: Flask, api: FlaskPydanticSpec):
     api.register(app)
     spec = api.spec
 
-    openapi_v31_spec_validator.validate(spec)
+    assert OpenAPIV31SpecValidator(spec).is_valid()
 
 
 def test_openapi_tags(app: Flask, api: FlaskPydanticSpec):

@@ -20,6 +20,7 @@ from .utils import (
     parse_name,
     default_before_handler,
     default_after_handler,
+    get_model_name,
 )
 
 
@@ -150,10 +151,8 @@ class FlaskPydanticSpec:
                     else:
                         _model = model
                     if _model:
-                        self.models[_model.__name__.replace("[", "_").replace("]", "_")] = (
-                            self._get_open_api_schema(
-                                _model.model_json_schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
-                            )
+                        self.models[get_model_name(_model)] = self._get_open_api_schema(
+                            _model.model_json_schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
                         )
                     setattr(validation, name, model)
 
@@ -163,11 +162,9 @@ class FlaskPydanticSpec:
             for model in resp.models:
                 if model:
                     assert not isinstance(model, RequestBase)
-                    self.models[model.__name__.replace("[", "_").replace("]", "_")] = (
-                        self._get_open_api_schema(
-                            model.model_json_schema(
-                                mode="serialization", ref_template=OPENAPI_SCHEMA_TEMPLATE
-                            )
+                    self.models[get_model_name(model)] = self._get_open_api_schema(
+                        model.model_json_schema(
+                            mode="serialization", ref_template=OPENAPI_SCHEMA_TEMPLATE
                         )
                     )
             setattr(validation, "resp", resp)

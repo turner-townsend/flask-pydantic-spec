@@ -11,6 +11,7 @@ from flask_pydantic_spec import Response
 from flask_pydantic_spec.types import FileResponse, Request, MultipartFormRequest
 from flask_pydantic_spec import FlaskPydanticSpec
 from flask_pydantic_spec.config import Config
+from flask_pydantic_spec.utils import get_model_name
 
 from .common import ExampleConverter, UnknownConverter
 
@@ -192,10 +193,7 @@ def test_openapi_deprecated(app: Flask, api: FlaskPydanticSpec):
 def test_flat_array_schemas(app: Flask, api: FlaskPydanticSpec):
     api.register(app)
     spec = api.spec
-    assert (
-        spec["components"]["schemas"][ExampleNestedList.__name__.replace("[", "_").replace("]", "_")].get("items")
-        is not None
-    )
+    assert spec["components"]["schemas"][get_model_name(ExampleNestedList)].get("items") is not None
 
 
 @pytest.mark.parametrize(

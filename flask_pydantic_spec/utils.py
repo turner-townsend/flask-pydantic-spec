@@ -13,6 +13,7 @@ from typing import (
     List,
     Dict,
     Iterable,
+    Type,
 )
 
 from werkzeug.datastructures import MultiDict
@@ -22,6 +23,19 @@ from werkzeug.routing import Rule
 from .types import Response, RequestBase, Request
 
 logger = logging.getLogger(__name__)
+
+VALID_NAME_REGEX = re.compile(r"[^a-zA-Z0-9._-]")
+
+
+def get_model_name(model: Type[BaseModel]) -> str:
+    """Gets the name of a model name as an OpenAPI 3.1 compatible name
+
+    Replaces any non standard characters in a string with `_`
+
+    >>> format_model_name("AB[C[D]]")
+    AB_C_D__
+    """
+    return VALID_NAME_REGEX.sub("_", model.__name__)
 
 
 def parse_comments(func: Callable) -> Tuple[Optional[str], Optional[str]]:

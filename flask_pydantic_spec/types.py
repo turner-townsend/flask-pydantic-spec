@@ -4,6 +4,7 @@ from typing import Optional, Type, Iterable, Mapping, Any, Dict, NamedTuple
 from pydantic import BaseModel
 
 from flask_pydantic_spec.constants import OPENAPI_SCHEMA_TEMPLATE
+from flask_pydantic_spec.utils import get_model_name
 
 
 class ResponseBase:
@@ -116,9 +117,7 @@ class Response(ResponseBase):
 
     @staticmethod
     def get_schema(model: Type[BaseModel], is_list: bool = False) -> Mapping[str, Any]:
-        ref_schema = {
-            "$ref": f"#/components/schemas/{model.__name__.replace('[', '_').replace(']', '_')}"
-        }
+        ref_schema = {"$ref": f"#/components/schemas/{get_model_name(model)}"}
         if is_list:
             return {"schema": {"type": "array", "items": ref_schema}}
         return {"schema": ref_schema}
@@ -184,9 +183,7 @@ class Request(RequestBase):
             return {
                 "content": {
                     self.content_type: {
-                        "schema": {
-                            "$ref": f"#/components/schemas/{self.model.__name__.replace('[', '_').replace(']', '_')}"
-                        }
+                        "schema": {"$ref": f"#/components/schemas/{get_model_name(self.model)}"}
                     }
                 }
             }

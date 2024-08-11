@@ -193,7 +193,7 @@ def test_flat_array_schemas(app: Flask, api: FlaskPydanticSpec):
     api.register(app)
     spec = api.spec
     assert (
-        spec["components"]["schemas"]["RootModel_List_tests.test_spec.ExampleModel__"].get("items")
+        spec["components"]["schemas"][ExampleNestedList.__name__.replace("[", "_").replace("]", "_")].get("items")
         is not None
     )
 

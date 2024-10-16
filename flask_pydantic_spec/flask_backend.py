@@ -137,7 +137,7 @@ class FlaskBackend:
     ) -> None:
         raw_query = request.args or None
         if raw_query is not None:
-            req_query = parse_multi_dict(raw_query, parse_json=False)
+            req_query = parse_multi_dict(raw_query, False)
         else:
             req_query = {}
         if request.content_type and "application/json" in request.content_type:
@@ -152,7 +152,7 @@ class FlaskBackend:
                 )
         elif request.content_type and "multipart/form-data" in request.content_type:
             parsed_body = (
-                parse_multi_dict(request.form, parse_json=True) if request.form else {}
+                parse_multi_dict(request.form, True) if request.form else {}
             )
         else:
             parsed_body = request.get_data() or {}

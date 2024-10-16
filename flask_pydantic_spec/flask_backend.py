@@ -151,7 +151,7 @@ class FlaskBackend:
                     {} if request.get_data() == b"" else request.get_json(force=True)
                 )
         elif request.content_type and "multipart/form-data" in request.content_type:
-            parsed_body = parse_multi_dict(request.form) if request.form else {}
+            parsed_body = parse_multi_dict(request.form, parse_json=True) if request.form else {}
         else:
             parsed_body = request.get_data() or {}
         req_headers: Optional[Headers] = request.headers or None

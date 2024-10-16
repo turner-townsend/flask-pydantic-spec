@@ -197,14 +197,16 @@ def default_after_handler(
         )
 
 
-def parse_multi_dict(input: MultiDict) -> Dict[str, Any]:
+def parse_multi_dict(input: MultiDict, parse_json=False) -> Dict[str, Any]:
     result = {}
     for key, value in input.to_dict(flat=False).items():
-        if len(value) == 1:
+        if len(value) == 1 and parse_json:
             try:
                 value_to_use = json.loads(value[0])
             except (TypeError, JSONDecodeError):
                 value_to_use = value[0]
+        elif len(value) == 1:
+            value_to_use = value[0]
         else:
             value_to_use = value
         result[key] = value_to_use

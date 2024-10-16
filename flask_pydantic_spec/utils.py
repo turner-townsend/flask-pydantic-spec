@@ -197,7 +197,7 @@ def default_after_handler(
         )
 
 
-def parse_multi_dict(input: MultiDict, parse_json=False) -> Dict[str, Any]:
+def parse_multi_dict(input: MultiDict, parse_json: bool = False) -> Dict[str, Any]:
     result = {}
     for key, value in input.to_dict(flat=False).items():
         if len(value) == 1 and parse_json:

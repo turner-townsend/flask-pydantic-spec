@@ -162,6 +162,7 @@ class FlaskPydanticSpec:
         publish: bool = False,
         category: str = "default",
         no_api_key: bool = False,
+        is_token_route: bool = False,
     ) -> Callable:
         """
         - validate query, body, headers in request
@@ -216,6 +217,7 @@ class FlaskPydanticSpec:
                     "200": {"description": "ok"}
                 }
                 self.class_view_api_info[view_name][method]["no_api_key"] = no_api_key
+                self.class_view_api_info[view_name][method]["is_token_route"] = is_token_route
 
             # register
             for name, model in zip(
@@ -377,6 +379,9 @@ class FlaskPydanticSpec:
                     no_api_key = self.class_view_apispec[path][method.lower()].get(
                         "no_api_key", False
                     )
+                    is_token_route = self.class_view_apispec[path][method.lower()].get(
+                        "is_token_route", False
+                    )
                     if self.config.MODE == "publish_only" and not publish:
                         continue
                 else:
@@ -385,6 +390,7 @@ class FlaskPydanticSpec:
                         continue
                     category = getattr(func, "category", "default")
                     no_api_key = getattr(func, "no_api_key", False)
+                    is_token_route = getattr(func, "is_token_route", False)
 
                 if path not in routes:
                     routes[path] = dict()
@@ -396,7 +402,7 @@ class FlaskPydanticSpec:
                     "tags": func_tag,
                     "parameters": parameters,
                     "responses": responses,
-                    **({"security": []} if no_api_key else {}),
+                    **(self._get_route_security(no_api_key, is_token_route)),
                 }
                 routes[path][method.lower()] = path_method_info
 
@@ -421,6 +427,13 @@ class FlaskPydanticSpec:
                     ] = self._parse_request_body(request_body)
 
         return self._generate_spec_common(routes)
+
+    def _get_route_security(self, no_api_key, is_token_route):
+        if no_api_key:
+            return {"security": []}
+        elif is_token_route:
+            return {"security": [{"GetToken": []}]}
+        return {}
 
     def _validate_property(self, property: Mapping[str, Any]) -> Dict[str, Any]:
         allowed_fields = {

@@ -430,7 +430,7 @@ class FlaskPydanticSpec:
 
         return self._generate_spec_common(routes)
 
-    def _get_route_security(self, no_api_key, is_token_route):
+    def _get_route_security(self, no_api_key: bool, is_token_route: bool) -> dict:
         if no_api_key:
             return {"security": []}
         elif is_token_route:

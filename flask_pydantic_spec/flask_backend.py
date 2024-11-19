@@ -137,7 +137,7 @@ class FlaskBackend:
     ) -> None:
         raw_query = request.args or None
         if raw_query is not None:
-            req_query = parse_multi_dict(raw_query)
+            req_query = parse_multi_dict(raw_query, query)
         else:
             req_query = {}
         if request.content_type and "application/json" in request.content_type:

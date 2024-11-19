@@ -199,12 +199,17 @@ def default_after_handler(
         )
 
 
-def parse_multi_dict(input: MultiDict, schema: Optional[Type[BaseModel]] = None) -> Dict[str, Any]:
+def parse_multi_dict(
+    input: MultiDict, schema: Optional[Type[BaseModel]] = None
+) -> Dict[str, Any]:
     result = {}
     for key, value in input.to_dict(flat=False).items():
         if len(value) == 1:
             value_to_use = value[0]
-            if not schema or any(shape == schema.__fields__[key].shape for shape in [SHAPE_LIST, SHAPE_DICT]):
+            if not schema or any(
+                shape == schema.__fields__[key].shape
+                for shape in [SHAPE_LIST, SHAPE_DICT]
+            ):
                 try:
                     value_to_use = json.loads(value[0])
                 except (TypeError, JSONDecodeError):

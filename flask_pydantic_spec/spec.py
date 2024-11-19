@@ -217,7 +217,9 @@ class FlaskPydanticSpec:
                     "200": {"description": "ok"}
                 }
                 self.class_view_api_info[view_name][method]["no_api_key"] = no_api_key
-                self.class_view_api_info[view_name][method]["is_token_route"] = is_token_route
+                self.class_view_api_info[view_name][method][
+                    "is_token_route"
+                ] = is_token_route
 
             # register
             for name, model in zip(

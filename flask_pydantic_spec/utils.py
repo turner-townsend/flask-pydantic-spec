@@ -206,9 +206,9 @@ def parse_multi_dict(
     for key, value in input.to_dict(flat=False).items():
         if len(value) == 1:
             value_to_use = value[0]
-            if not schema or any(
-                shape == schema.__fields__[key].shape
-                for shape in [SHAPE_LIST, SHAPE_DICT]
+            if not schema or (
+                key in schema.__fields__
+                and schema.__fields__[key].shape in [SHAPE_LIST, SHAPE_DICT]
             ):
                 try:
                     value_to_use = json.loads(value[0])

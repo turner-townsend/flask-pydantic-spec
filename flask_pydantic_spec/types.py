@@ -116,7 +116,9 @@ class Response(ResponseBase):
 
     @staticmethod
     def get_schema(model: Type[BaseModel], is_list: bool = False) -> Mapping[str, Any]:
-        ref_schema = {"$ref": f"#/components/schemas/{model.__name__}"}
+        from flask_pydantic_spec.utils import get_model_name
+
+        ref_schema = {"$ref": f"#/components/schemas/{get_model_name(model)}"}
         if is_list:
             return {"schema": {"type": "array", "items": ref_schema}}
         return {"schema": ref_schema}
@@ -171,6 +173,8 @@ class Request(RequestBase):
         return self.model is not None
 
     def generate_spec(self) -> Mapping[str, Any]:
+        from flask_pydantic_spec.utils import get_model_name
+
         if self.content_type == "application/octet-stream":
             return {
                 "content": {
@@ -182,7 +186,7 @@ class Request(RequestBase):
             return {
                 "content": {
                     self.content_type: {
-                        "schema": {"$ref": f"#/components/schemas/{self.model.__name__}"}
+                        "schema": {"$ref": f"#/components/schemas/{get_model_name(self.model)}"}
                     }
                 }
             }
@@ -204,7 +208,11 @@ class MultipartFormRequest(RequestBase):
         return self.model is not None
 
     def generate_spec(self) -> Mapping[str, Any]:
-        model_spec = self.model.schema(ref_template=OPENAPI_SCHEMA_TEMPLATE) if self.model else None
+        model_spec = (
+            self.model.model_json_schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
+            if self.model
+            else None
+        )
         if model_spec:
             additional_properties = model_spec["properties"]
         else:

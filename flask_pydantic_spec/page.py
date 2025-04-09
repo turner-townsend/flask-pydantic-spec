@@ -36,7 +36,7 @@ PAGES = {
         <meta charset="UTF-8">
         <title>{0.TITLE}</title>
         <link rel="stylesheet" type="text/css"
-        href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@3/swagger-ui.css" >
+        href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css" >
         <style>
         html
         {{
@@ -64,9 +64,9 @@ PAGES = {
         <div id="swagger-ui"></div>
 
         <script
-src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@3/swagger-ui-bundle.js"></script>
+src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
         <script
-src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@3/swagger-ui-standalone-preset.js"></script>
+src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
         <script>
         window.onload = function() {{
         // Begin Swagger UI call region

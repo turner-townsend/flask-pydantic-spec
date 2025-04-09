@@ -1,8 +1,10 @@
 from datetime import datetime
 from io import BytesIO
+import logging
 from random import randint
 import gzip
 from typing import Union
+from unittest.mock import ANY
 
 import pytest
 import json
@@ -44,11 +46,11 @@ app = Flask(__name__)
 
 
 @app.route("/ping")
-@api.validate(headers=Headers, tags=["test", "health"])
+@api.validate(headers=Headers, tags=["test", "health"], resp=Response(HTTP_200=Resp))
 def ping():
     """summary
     description"""
-    return jsonify(msg="pong")
+    return jsonify(name="Test", score=[10])
 
 
 @app.route("/api/user", methods=["GET"])
@@ -120,12 +122,12 @@ def test_flask_validate(client: Client):
     assert resp.headers.get("X-Error") == "Validation Error"
 
     resp = client.get("/ping", headers={"lang": "en-US"})
-    assert resp.json == {"msg": "pong"}
+    assert resp.json == {"name": "Test", "score": [10]}
     assert resp.headers.get("X-Error") is None
     assert resp.headers.get("X-Validation") == "Pass"
 
     resp = client.get("/ping", headers={"lang": "en-US", "Content-Type": "application/json"})
-    assert resp.json == {"msg": "pong"}
+    assert resp.json == {"name": "Test", "score": [10]}
     assert resp.headers.get("X-Error") is None
     assert resp.headers.get("X-Validation") == "Pass"
 
@@ -150,6 +152,7 @@ def test_flask_validate(client: Client):
         data=json.dumps(dict(name="flask", limit=10)),
         content_type="application/json",
     )
+    assert resp.status_code == 200
     assert resp.json["score"] == sorted(resp.json["score"], reverse=False)
 
     resp = client.post(
@@ -157,6 +160,7 @@ def test_flask_validate(client: Client):
         data=json.dumps(dict(name="flask", limit=10)),
         content_type="application/json",
     )
+    assert resp.status_code == 200
     assert resp.json["score"] == sorted(resp.json["score"], reverse=False)
 
 
@@ -265,4 +269,44 @@ def test_flask_post_gzip_failure(client: Client):
         },
     )
     assert resp.status_code == 400
-    assert resp.json == [{"loc": ["limit"], "msg": "field required", "type": "value_error.missing"}]
+    assert resp.json == [
+        {
+            "input": {"name": "flask"},
+            "loc": ["limit"],
+            "msg": "Field required",
+            "type": "missing",
+            "url": ANY,
+        }
+    ]
+
+
+api2 = FlaskPydanticSpec("flask")
+app2 = Flask(__name__)
+
+
+@pytest.fixture
+def client2():
+    with app2.test_client() as client:
+        yield client
+
+
+@app2.post("/create")
+@api2.validate(body=DemoModel, resp=Response(HTTP_200=Resp, HTTP_401=None))
+def valid_response():
+    return jsonify(name=request.context.body.name)
+
+
+def test_default_before_handler(client2: Client, caplog):
+    with caplog.at_level(logging.INFO):
+        resp = client2.post("/create")
+
+    assert resp.status_code == 422
+    assert "Validation Error" in caplog.text
+
+
+def test_default_after_handler(client2: Client, caplog):
+    with caplog.at_level(logging.INFO):
+        resp = client2.post("/create", json=dict(uid=1, limit=1, name="name"))
+
+    assert resp.status_code == 500
+    assert "500 Response Validation Error" in caplog.text

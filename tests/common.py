@@ -2,7 +2,7 @@ from datetime import date
 from enum import IntEnum, Enum
 from typing import List, Optional
 
-from pydantic import BaseModel, root_validator
+from pydantic import BaseModel, model_validator
 from werkzeug.routing import BaseConverter
 
 
@@ -12,11 +12,11 @@ class Order(IntEnum):
 
 
 class Query(BaseModel):
-    order: Optional[Order]
+    order: Optional[Order] = None
 
 
 class QueryParams(BaseModel):
-    name: Optional[List[str]]
+    name: Optional[List[str]] = None
 
 
 class User(BaseModel):
@@ -45,7 +45,7 @@ class Language(str, Enum):
 class Headers(BaseModel):
     lang: Language
 
-    @root_validator(pre=True, allow_reuse=True)
+    @model_validator(mode="before")
     def lower_keys(cls, values):
         return {key.lower(): value for key, value in values.items()}
 

@@ -29,7 +29,7 @@ class Data(BaseModel):
     vip: bool
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             'example': {
                 'uid': 'very_important_user',
                 'limit': 10,

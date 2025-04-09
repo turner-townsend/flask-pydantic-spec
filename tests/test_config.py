@@ -47,12 +47,3 @@ def test_update_ui(config):
     with pytest.raises(AssertionError) as e:
         config.update(ui="python")
     assert "UI" in str(e.value)
-
-
-def test_update_mode(config):
-    config.update(mode="greedy")
-    assert config.MODE == "greedy"
-
-    with pytest.raises(AssertionError) as e:
-        config.update(mode="true")
-    assert "MODE" in str(e.value)

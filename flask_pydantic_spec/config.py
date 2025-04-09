@@ -4,9 +4,6 @@ from typing import Set, Optional, Dict, Any, Mapping, List
 
 class Config:
     """
-    :ivar MODE: mode for route. **normal** includes undecorated routes and
-        routes decorated by this instance. **strict** only includes routes
-        decorated by this instance. **greedy** includes all the routes.
     :ivar PATH: path for API document page
     :ivar OPENAPI_VERSION: OpenAPI version
     :ivar TITLE: service name
@@ -18,10 +15,9 @@ class Config:
     def __init__(self, **kwargs: Dict[str, Any]) -> None:
         self.PATH: str = "apidoc"
         self.FILENAME: str = "openapi.json"
-        self.OPENAPI_VERSION: str = "3.0.3"
+        self.OPENAPI_VERSION: str = "3.1.0"
         self.UI: str = "redoc"
         self._SUPPORT_UI: Set[str] = {"redoc", "swagger"}
-        self.MODE: str = "normal"
         self._SUPPORT_MODE: Set[str] = {"normal", "strict", "greedy"}
         self.VALIDATION_ERROR_CODE: int = 422
 
@@ -66,4 +62,3 @@ class Config:
                 self.logger.info(f'[✓] Attribute "{key}" has been updated to "{value}"')
 
         assert self.UI in self._SUPPORT_UI, "unsupported UI"
-        assert self.MODE in self._SUPPORT_MODE, "unsupported MODE"

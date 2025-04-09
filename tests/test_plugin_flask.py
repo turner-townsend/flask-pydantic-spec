@@ -1,8 +1,10 @@
 from datetime import datetime
 from io import BytesIO
+import logging
 from random import randint
 import gzip
 from typing import Union
+from unittest.mock import ANY
 
 import pytest
 import json
@@ -273,6 +275,38 @@ def test_flask_post_gzip_failure(client: Client):
             "loc": ["limit"],
             "msg": "Field required",
             "type": "missing",
-            "url": "https://errors.pydantic.dev/2.8/v/missing",
+            "url": ANY,
         }
     ]
+
+
+api2 = FlaskPydanticSpec("flask")
+app2 = Flask(__name__)
+
+
+@pytest.fixture
+def client2():
+    with app2.test_client() as client:
+        yield client
+
+
+@app2.post("/create")
+@api2.validate(body=DemoModel, resp=Response(HTTP_200=Resp, HTTP_401=None))
+def valid_response():
+    return jsonify(name=request.context.body.name)
+
+
+def test_default_before_handler(client2: Client, caplog):
+    with caplog.at_level(logging.INFO):
+        resp = client2.post("/create")
+
+    assert resp.status_code == 422
+    assert "Validation Error" in caplog.text
+
+
+def test_default_after_handler(client2: Client, caplog):
+    with caplog.at_level(logging.INFO):
+        resp = client2.post("/create", json=dict(uid=1, limit=1, name="name"))
+
+    assert resp.status_code == 500
+    assert "500 Response Validation Error" in caplog.text

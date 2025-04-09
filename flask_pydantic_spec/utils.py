@@ -183,7 +183,7 @@ def default_before_handler(
         logger.info(
             "Validation Error",
             extra={
-                "spectree_model": req_validation_error.model.__name__,
+                "spectree_model": req_validation_error.__class__.__name__,
                 "spectree_validation": req_validation_error.errors(),
             },
         )
@@ -205,7 +205,7 @@ def default_after_handler(
         logger.info(
             "500 Response Validation Error",
             extra={
-                "spectree_model": resp_validation_error.model.__name__,
+                "spectree_model": resp_validation_error.__class__.__name__,
                 "spectree_validation": resp_validation_error.errors(),
             },
         )

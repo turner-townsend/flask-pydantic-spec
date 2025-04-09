@@ -1,5 +1,15 @@
 .. currentmodule:: flask-pydantic-spec
 
+VERSION 0.7.0
+------------
+
+Release 2025-04-09
+
+- Drop support for Python 3.8
+- Add support for Pydantic V2 and drop support for Pydantic V1
+- Fix typo in flask_pydantic_spec/types.py
+
+
 VERSION 0.6.0
 -------------
 

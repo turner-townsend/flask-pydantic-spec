@@ -1,11 +1,12 @@
 from enum import Enum
 import re
-from typing import Optional, List
+from typing import Any, Optional, List
 
 import pytest
 from flask import Flask
-from openapi_spec_validator import openapi_v31_spec_validator, OpenAPIV31SpecValidator
+from openapi_spec_validator import OpenAPIV31SpecValidator
 from pydantic import BaseModel, StrictFloat, Field, RootModel
+from pydantic import v1
 
 from flask_pydantic_spec import Response
 from flask_pydantic_spec.types import FileResponse, Request, MultipartFormRequest
@@ -32,7 +33,8 @@ class ExampleQuery(BaseModel):
     type: Optional[TypeEnum] = None
 
 
-ExampleNestedList = RootModel[List[ExampleModel]]
+class ExampleNestedList(RootModel):
+    root: List[ExampleModel]
 
 
 class ExampleNestedModel(BaseModel):
@@ -41,6 +43,29 @@ class ExampleNestedModel(BaseModel):
 
 class ExampleDeepNestedModel(BaseModel):
     data: List["ExampleModel"]
+
+
+class ExampleV1Model(v1.BaseModel):
+    name: str = v1.Field(strip_whitespace=True)
+    age: int
+    height: StrictFloat
+
+
+class ExampleV1Query(v1.BaseModel):
+    query: str
+    type: Optional[TypeEnum] = None
+
+
+class ExampleV1NestedList(v1.BaseModel):
+    __root__: List[ExampleV1Model]
+
+
+class ExampleV1NestedModel(v1.BaseModel):
+    example: ExampleV1Model
+
+
+class ExampleV1DeepNestedModel(v1.BaseModel):
+    data: List["ExampleV1Model"]
 
 
 def backend_app():
@@ -103,12 +128,12 @@ def app(api: FlaskPydanticSpec) -> Flask:
     app.url_map.converters["example"] = ExampleConverter
     app.url_map.converters["unknown"] = UnknownConverter
 
-    @app.route("/foo")
+    @app.get("/foo")
     @api.validate(resp=Response(HTTP_200=ExampleModel))
     def foo():
         pass
 
-    @app.route("/lone", methods=["POST"])
+    @app.post("/lone")
     @api.validate(
         body=Request(ExampleModel),
         resp=Response(HTTP_200=ExampleNestedList, HTTP_400=ExampleNestedModel),
@@ -118,7 +143,7 @@ def app(api: FlaskPydanticSpec) -> Flask:
     def lone_post():
         pass
 
-    @app.route("/lone", methods=["PATCH"])
+    @app.patch("/lone")
     @api.validate(
         body=Request(ExampleModel),
         resp=Response(HTTP_200=List[ExampleModel], HTTP_400=ExampleNestedModel),
@@ -127,17 +152,17 @@ def app(api: FlaskPydanticSpec) -> Flask:
     def lone_patch():
         pass
 
-    @app.route("/query", methods=["GET"])
+    @app.get("/query")
     @api.validate(query=ExampleQuery, resp=Response(HTTP_200=List[ExampleModel]))
     def get_query():
         pass
 
-    @app.route("/file")
+    @app.get("/file")
     @api.validate(resp=FileResponse())
     def get_file():
         pass
 
-    @app.route("/file", methods=["POST"])
+    @app.post("/file")
     @api.validate(
         body=Request(content_type="application/octet-stream"),
         resp=FileResponse(),
@@ -145,14 +170,53 @@ def app(api: FlaskPydanticSpec) -> Flask:
     def post_file():
         pass
 
-    @app.route("/multipart-file", methods=["POST"])
+    @app.post("/multipart-file")
     @api.validate(body=MultipartFormRequest(ExampleModel), resp=Response(HTTP_200=ExampleModel))
     def post_multipart_form():
         pass
 
-    @app.route("/enum/<example:example>", methods=["GET"])
+    @app.get("/enum/<example:example>")
     @api.validate(resp=Response(HTTP_200=ExampleModel))
     def get_enum(example):
+        pass
+
+    @app.get("/v1/foo")
+    @api.validate(resp=Response(HTTP_200=ExampleV1Model))
+    def foo_v1():
+        pass
+
+    @app.post("/v1/lone")
+    @api.validate(
+        body=Request(ExampleV1Model),
+        resp=Response(HTTP_200=ExampleV1NestedList, HTTP_400=ExampleV1NestedModel),
+        tags=["lone"],
+        deprecated=True,
+    )
+    def lone_post_v1():
+        pass
+
+    @app.patch("/v1/lone")
+    @api.validate(
+        body=Request(ExampleV1Model),
+        resp=Response(HTTP_200=List[ExampleV1Model], HTTP_400=ExampleV1NestedModel),
+        tags=["lone"],
+    )
+    def lone_patch_v1():
+        pass
+
+    @app.get("/v1/query")
+    @api.validate(query=ExampleV1Query, resp=Response(HTTP_200=List[ExampleV1Model]))
+    def get_query_v1():
+        pass
+
+    @app.post("/v1/multipart-file")
+    @api.validate(body=MultipartFormRequest(ExampleV1Model), resp=Response(HTTP_200=ExampleV1Model))
+    def post_multipart_form_v1():
+        pass
+
+    @app.get("/v1/enum/<example:example>")
+    @api.validate(resp=Response(HTTP_200=ExampleV1Model))
+    def get_enum_v1(example):
         pass
 
     return app
@@ -273,3 +337,62 @@ def test_flat_array_schema_from_python_list_type(app: Flask, api: FlaskPydanticS
         schema_spec["type"] == "array"
         and schema_spec["items"]["$ref"] == "#/components/schemas/ExampleModel"
     )
+
+
+# TODO: add tests for v1 schemas
+def strip_v1(data: Any) -> Any:
+    if isinstance(data, dict):
+        return {k: strip_v1(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [strip_v1(item) for item in data]
+    elif isinstance(data, str):
+        return data.replace("V1", "").replace("_v1", "")
+    else:
+        return data
+
+
+@pytest.mark.parametrize(
+    ("route", "method"),
+    [
+        ("/foo", "get"),
+        ("/lone", "post"),
+        ("/lone", "patch"),
+        ("/multipart-file", "post"),
+        ("/enum/{example}", "get"),
+    ],
+)
+def test_v1_routes_match_v2(app: Flask, api: FlaskPydanticSpec, route: str, method: str):
+    api.register(app)
+    spec = api.spec
+    v1_route = f"/v1{route}"
+
+    v1_spec = spec["paths"][v1_route][method]
+    v2_spec = spec["paths"][route][method]
+
+    assert strip_v1(v1_spec) == v2_spec
+
+
+@pytest.mark.parametrize(
+    ("route", "method"),
+    [
+        ("/query", "get"),
+    ],
+)
+def test_v1_routes_with_nullable_match(app: Flask, api: FlaskPydanticSpec, route: str, method: str):
+    api.register(app)
+    spec = api.spec
+    v1_route = f"/v1{route}"
+
+    v1_spec = spec["paths"][v1_route][method]
+    v2_spec = spec["paths"][route][method]
+
+    v1_query_type = v1_spec["parameters"][1].pop("schema")
+    v2_query_type = v2_spec["parameters"][1].pop("schema")
+
+    assert strip_v1(v1_spec) == v2_spec
+    # Pydantic v1 was incorrectly implemented
+    assert v1_query_type == {"$ref": "#/components/schemas/TypeEnum"}
+    assert v2_query_type == {
+        "anyOf": [{"$ref": "#/components/schemas/TypeEnum"}, {"type": "null"}],
+        "default": None,
+    }

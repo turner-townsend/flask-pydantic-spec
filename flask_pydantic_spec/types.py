@@ -1,9 +1,12 @@
 import re
-from typing import Optional, Type, Iterable, Mapping, Any, Dict, NamedTuple
+from typing import Optional, Type, Iterable, Mapping, Any, Dict, NamedTuple, TypeVar, Union
 
 from pydantic import BaseModel
+from pydantic import v1
 
-from flask_pydantic_spec.constants import OPENAPI_SCHEMA_TEMPLATE
+
+BaseModelUnion = Union[BaseModel, v1.BaseModel]
+BaseModelT = TypeVar("BaseModelT", bound=BaseModelUnion)
 
 
 class ResponseBase:
@@ -14,11 +17,11 @@ class ResponseBase:
     def has_model(self) -> bool:
         raise NotImplementedError
 
-    def find_model(self, code: int) -> Optional[Type[BaseModel]]:
+    def find_model(self, code: int) -> Optional[Type[BaseModelUnion]]:
         raise NotImplementedError
 
     @property
-    def models(self) -> Iterable[Type[BaseModel]]:
+    def models(self) -> Iterable[Type[BaseModelUnion]]:
         raise NotImplementedError
 
     def generate_spec(self) -> Mapping[str, Any]:
@@ -26,7 +29,7 @@ class ResponseBase:
 
 
 class ResponseModel(NamedTuple):
-    model: Type[BaseModel]
+    model: Type[BaseModelUnion]
     is_list: bool = False
 
 
@@ -56,11 +59,13 @@ class Response(ResponseBase):
                 if value:
                     if self.is_list_type(value):
                         assert issubclass(
-                            value.__args__[0], BaseModel
+                            value.__args__[0], (BaseModel, v1.BaseModel)
                         ), "invalid `pydantic.BaseModel`"
                         self.code_models[key] = ResponseModel(value.__args__[0], True)
                     else:
-                        assert issubclass(value, BaseModel), "invalid `pydantic.BaseModel`"
+                        assert issubclass(
+                            value, (BaseModel, v1.BaseModel)
+                        ), "invalid `pydantic.BaseModel`"
                         self.code_models[key] = ResponseModel(value, False)
                 else:
                     self.codes.append(key)
@@ -75,7 +80,7 @@ class Response(ResponseBase):
         """
         return True if self.code_models else False
 
-    def find_model(self, code: int) -> Optional[Type[BaseModel]]:
+    def find_model(self, code: int) -> Optional[Type[BaseModelUnion]]:
         """
         :param code: ``r'\\d{3}'``
         """
@@ -85,7 +90,7 @@ class Response(ResponseBase):
         return None
 
     @property
-    def models(self) -> Iterable[Type[BaseModel]]:
+    def models(self) -> Iterable[Type[BaseModelUnion]]:
         """
         :returns:  dict_values -- all the models in this response
         """
@@ -115,7 +120,7 @@ class Response(ResponseBase):
         return responses
 
     @staticmethod
-    def get_schema(model: Type[BaseModel], is_list: bool = False) -> Mapping[str, Any]:
+    def get_schema(model: Type[BaseModelUnion], is_list: bool = False) -> Mapping[str, Any]:
         from flask_pydantic_spec.utils import get_model_name
 
         ref_schema = {"$ref": f"#/components/schemas/{get_model_name(model)}"}
@@ -135,7 +140,7 @@ class FileResponse(ResponseBase):
         return False
 
     @property
-    def models(self) -> Iterable[Type[BaseModel]]:
+    def models(self) -> Iterable[Type[BaseModelUnion]]:
         return []
 
     def generate_spec(self) -> Mapping[str, Any]:
@@ -161,7 +166,7 @@ class RequestBase:
 class Request(RequestBase):
     def __init__(
         self,
-        model: Optional[Type[BaseModel]] = None,
+        model: Optional[Type[BaseModelUnion]] = None,
         content_type: str = "application/json",
         encoding: str = "binary",
     ) -> None:
@@ -195,7 +200,7 @@ class Request(RequestBase):
 class MultipartFormRequest(RequestBase):
     def __init__(
         self,
-        model: Optional[Type[BaseModel]] = None,
+        model: Optional[Type[BaseModelUnion]] = None,
         file_key: str = "file",
         encoding: str = "binary",
     ):
@@ -208,13 +213,10 @@ class MultipartFormRequest(RequestBase):
         return self.model is not None
 
     def generate_spec(self) -> Mapping[str, Any]:
-        model_spec = (
-            self.model.model_json_schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
-            if self.model
-            else None
-        )
-        if model_spec:
-            additional_properties = model_spec["properties"]
+        from .utils import get_model_schema
+
+        if self.model:
+            additional_properties = get_model_schema(self.model)["properties"]
         else:
             additional_properties = {}
 

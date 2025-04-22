@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import datetime
 from io import BytesIO
 import logging
@@ -16,15 +17,23 @@ from flask_pydantic_spec.types import Response, MultipartFormRequest
 from flask_pydantic_spec import FlaskPydanticSpec
 
 from .common import (
+    CookiesV1,
+    DemoModelV1,
+    FileNameV1,
+    HeadersV1,
     Query,
+    QueryParamsV1,
+    QueryV1,
     Resp,
     JSON,
     Headers,
     Cookies,
     DemoModel,
     QueryParams,
+    RespV1,
     Users,
     FileName,
+    UsersV1,
 )
 
 
@@ -50,6 +59,18 @@ app = Flask(__name__)
 def ping():
     """summary
     description"""
+    return _ping()
+
+
+@app.route("/v1/ping")
+@api.validate(headers=HeadersV1, tags=["test", "health"], resp=Response(HTTP_200=RespV1))
+def ping_v1():
+    """summary
+    description"""
+    return _ping()
+
+
+def _ping():
     return jsonify(name="Test", score=[10])
 
 
@@ -59,6 +80,19 @@ def ping():
     resp=Response(HTTP_200=Users, HTTP_401=None),
 )
 def get_users():
+    return _get_users()
+
+
+@app.route("/v1/api/user", methods=["GET"])
+@api.validate(
+    query=QueryParamsV1,
+    resp=Response(HTTP_200=UsersV1, HTTP_401=None),
+)
+def get_users_v1():
+    return _get_users()
+
+
+def _get_users():
     allowed_names = ["james", "annabel", "bethany"]
     query_params = request.context.query
     return jsonify(
@@ -81,6 +115,23 @@ def get_users():
     after=api_after_handler,
 )
 def user_score(name):
+    return _user_score(name)
+
+
+@app.route("/v1/api/user/<name>", methods=["POST"])
+@api.validate(
+    query=QueryV1,
+    body=JSON,
+    cookies=CookiesV1,
+    resp=Response(HTTP_200=RespV1, HTTP_401=None),
+    tags=["api", "test"],
+    after=api_after_handler,
+)
+def user_score_v1(name):
+    return _user_score(name)
+
+
+def _user_score(name):
     score = [randint(0, request.context.body.limit) for _ in range(5)]
     score.sort(reverse=request.context.query.order if request.context.query.order else False)
     assert request.context.cookies.pub == "abcdefg"
@@ -91,6 +142,16 @@ def user_score(name):
 @app.route("/api/group/<name>", methods=["GET"])
 @api.validate(resp=Response(HTTP_200=Resp, HTTP_401=None, validate=False), tags=["api", "test"])
 def group_score(name):
+    return _group_score(name)
+
+
+@app.route("/v1/api/group/<name>", methods=["GET"])
+@api.validate(resp=Response(HTTP_200=RespV1, HTTP_401=None, validate=False), tags=["api", "test"])
+def group_score_v1(name):
+    return _group_score(name)
+
+
+def _group_score(name):
     score = ["a", "b", "c", "d", "e"]
     return jsonify(name=name, score=score)
 
@@ -98,6 +159,16 @@ def group_score(name):
 @app.route("/api/file", methods=["POST"])
 @api.validate(body=MultipartFormRequest(model=FileName), resp=Response(HTTP_200=DemoModel))
 def upload_file():
+    return _upload_file()
+
+
+@app.route("/v1/api/file", methods=["POST"])
+@api.validate(body=MultipartFormRequest(model=FileNameV1), resp=Response(HTTP_200=DemoModelV1))
+def upload_file_v1():
+    return _upload_file()
+
+
+def _upload_file():
     files = request.files
     body = request.context.body
     assert body is not None
@@ -115,29 +186,36 @@ def client(request):
         yield client
 
 
+@pytest.fixture(params=[pytest.param("/v1", id="v1"), pytest.param("", id="v2")])
+def version(request):
+    return request.param
+
+
 @pytest.mark.parametrize("client", [422], indirect=True)
-def test_flask_validate(client: Client):
-    resp = client.get("/ping")
+def test_flask_validate(client: Client, version: str):
+    resp = client.get(f"{version}/ping")
     assert resp.status_code == 422
     assert resp.headers.get("X-Error") == "Validation Error"
 
-    resp = client.get("/ping", headers={"lang": "en-US"})
+    resp = client.get(f"{version}/ping", headers={"lang": "en-US"})
     assert resp.json == {"name": "Test", "score": [10]}
     assert resp.headers.get("X-Error") is None
     assert resp.headers.get("X-Validation") == "Pass"
 
-    resp = client.get("/ping", headers={"lang": "en-US", "Content-Type": "application/json"})
+    resp = client.get(
+        f"{version}/ping", headers={"lang": "en-US", "Content-Type": "application/json"}
+    )
     assert resp.json == {"name": "Test", "score": [10]}
     assert resp.headers.get("X-Error") is None
     assert resp.headers.get("X-Validation") == "Pass"
 
-    resp = client.post("api/user/flask")
+    resp = client.post(f"{version}/api/user/flask")
     assert resp.status_code == 422
     assert resp.headers.get("X-Error") == "Validation Error"
 
     client.set_cookie("pub", "abcdefg")
     resp = client.post(
-        "/api/user/flask?order=1",
+        f"{version}/api/user/flask?order=1",
         data=json.dumps(dict(name="flask", limit=10)),
         content_type="application/json",
     )
@@ -148,7 +226,7 @@ def test_flask_validate(client: Client):
     assert resp.json["score"] == sorted(resp.json["score"], reverse=True)
 
     resp = client.post(
-        "/api/user/flask?order=0",
+        f"{version}/api/user/flask?order=0",
         data=json.dumps(dict(name="flask", limit=10)),
         content_type="application/json",
     )
@@ -156,7 +234,7 @@ def test_flask_validate(client: Client):
     assert resp.json["score"] == sorted(resp.json["score"], reverse=False)
 
     resp = client.post(
-        "/api/user/flask",
+        f"{version}/api/user/flask",
         data=json.dumps(dict(name="flask", limit=10)),
         content_type="application/json",
     )
@@ -168,20 +246,20 @@ def test_flask_validate(client: Client):
 @pytest.mark.parametrize(
     "data",
     [
-        FileStorage(
+        lambda: FileStorage(
             BytesIO(json.dumps({"type": "foo", "created_at": str(datetime.now().date())}).encode()),
         ),
-        json.dumps({"type": "foo", "created_at": str(datetime.now().date())}),
+        lambda: json.dumps({"type": "foo", "created_at": str(datetime.now().date())}),
     ],
 )
-def test_sending_file(client: Client, data: Union[FileStorage, str]):
+def test_sending_file(client: Client, data: Callable[[], Union[FileStorage, str]], version: str):
     file = FileStorage(BytesIO(b"abcde"), filename="test.jpg", name="test.jpg")
     resp = client.post(
-        "/api/file",
+        f"{version}/api/file",
         data={
             "file": file,
             "file_name": "another_test.jpg",
-            "data": data,
+            "data": data(),
         },
     )
     assert resp.status_code == 200
@@ -189,8 +267,8 @@ def test_sending_file(client: Client, data: Union[FileStorage, str]):
 
 
 @pytest.mark.parametrize("client", [422], indirect=True)
-def test_query_params(client: Client):
-    resp = client.get("api/user?name=james&name=bethany&name=claire")
+def test_query_params(client: Client, version: str):
+    resp = client.get(f"{version}/api/user?name=james&name=bethany&name=claire")
     assert resp.status_code == 200
     assert len(resp.json["data"]) == 2
     assert resp.json["data"] == [
@@ -204,8 +282,8 @@ def test_query_params(client: Client):
 
 
 @pytest.mark.parametrize("client", [200], indirect=True)
-def test_flask_skip_validation(client: Client):
-    resp = client.get("api/group/test")
+def test_flask_skip_validation(client: Client, version: str):
+    resp = client.get(f"{version}/api/group/test")
     assert resp.status_code == 200
     assert resp.json["name"] == "test"
     assert resp.json["score"] == ["a", "b", "c", "d", "e"]
@@ -226,24 +304,24 @@ def test_flask_doc(client: Client):
 
 
 @pytest.mark.parametrize("client", [400], indirect=True)
-def test_flask_validate_with_alternative_code(client: Client):
-    resp = client.get("/ping")
+def test_flask_validate_with_alternative_code(client: Client, version: str):
+    resp = client.get(f"{version}/ping")
     assert resp.status_code == 400
     assert resp.headers.get("X-Error") == "Validation Error"
 
-    resp = client.post("api/user/flask")
+    resp = client.post(f"{version}/api/user/flask")
     assert resp.status_code == 400
     assert resp.headers.get("X-Error") == "Validation Error"
 
 
 @pytest.mark.parametrize("client", [400], indirect=True)
-def test_flask_post_gzip(client: Client):
+def test_flask_post_gzip(client: Client, version: str):
     body = dict(name="flask", limit=10)
     compressed = gzip.compress(bytes(json.dumps(body), encoding="utf-8"))
 
     client.set_cookie("pub", "abcdefg")
     resp = client.post(
-        "/api/user/flask?order=0",
+        f"{version}/api/user/flask?order=0",
         data=compressed,
         headers={
             "content-type": "application/json",
@@ -255,13 +333,13 @@ def test_flask_post_gzip(client: Client):
 
 
 @pytest.mark.parametrize("client", [400], indirect=True)
-def test_flask_post_gzip_failure(client: Client):
+def test_flask_post_gzip_failure(client: Client, version: str):
     body = dict(name="flask")
     compressed = gzip.compress(bytes(json.dumps(body), encoding="utf-8"))
 
     client.set_cookie("pub", "abcdefg")
     resp = client.post(
-        "/api/user/flask?order=0",
+        f"{version}/api/user/flask?order=0",
         data=compressed,
         headers={
             "content-type": "application/json",

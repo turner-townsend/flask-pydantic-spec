@@ -1,18 +1,18 @@
 from collections import defaultdict
 from copy import deepcopy
 from functools import wraps
-from typing import Mapping, Optional, Type, Union, Callable, Iterable, Any, Dict, List
+from typing import Mapping, Optional, Type, Union, Callable, Iterable, Any, Dict
 
 from flask import Flask, Response as FlaskResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, v1
 from inflection import camelize
 
 from . import Request
 from .config import Config
-from .constants import OPENAPI_SCHEMA_TEMPLATE
 from .flask_backend import FlaskBackend
-from .types import RequestBase, ResponseBase
+from .types import BaseModelUnion, RequestBase, ResponseBase
 from .utils import (
+    get_model_schema,
     parse_comments,
     parse_request,
     parse_params,
@@ -96,10 +96,10 @@ class FlaskPydanticSpec:
 
     def validate(
         self,
-        query: Optional[Type[BaseModel]] = None,
-        body: Optional[Union[RequestBase, Type[BaseModel]]] = None,
-        headers: Optional[Type[BaseModel]] = None,
-        cookies: Optional[Type[BaseModel]] = None,
+        query: Optional[Type[BaseModelUnion]] = None,
+        body: Optional[Union[RequestBase, Type[BaseModelUnion]]] = None,
+        headers: Optional[Type[BaseModelUnion]] = None,
+        cookies: Optional[Type[BaseModelUnion]] = None,
         resp: Optional[ResponseBase] = None,
         tags: Iterable[str] = (),
         deprecated: bool = False,
@@ -146,27 +146,20 @@ class FlaskPydanticSpec:
                 ("query", "body", "headers", "cookies"), (query, body, headers, cookies)
             ):
                 if model is not None:
-                    if hasattr(model, "model"):
+                    if isinstance(model, RequestBase) and hasattr(model, "model"):
                         _model = getattr(model, "model", None)
                     else:
                         _model = model
-                    if _model:
-                        self.models[get_model_name(_model)] = self._get_open_api_schema(
-                            _model.model_json_schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
-                        )
+                    if _model is not None and not isinstance(_model, RequestBase):
+                        self._register_model(_model)
                     setattr(validation, name, model)
 
             if resp is None:
                 raise RuntimeError("must provide at least one response body")
 
             for model in resp.models:
-                if model:
-                    assert not isinstance(model, RequestBase)
-                    self.models[get_model_name(model)] = self._get_open_api_schema(
-                        model.model_json_schema(
-                            mode="serialization", ref_template=OPENAPI_SCHEMA_TEMPLATE
-                        )
-                    )
+                self._register_model(model)
+
             setattr(validation, "resp", resp)
 
             if tags:
@@ -180,6 +173,9 @@ class FlaskPydanticSpec:
             return validation
 
         return decorate_validation
+
+    def _register_model(self, model: Type[BaseModelUnion]) -> None:
+        self.models[get_model_name(model)] = self._get_open_api_schema(get_model_schema(model))
 
     def _generate_spec(self) -> Mapping[str, Any]:
         """

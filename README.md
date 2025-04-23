@@ -1,4 +1,9 @@
-# Flask Pydantic Spec
+# Flask Pydantic Spec [![Version][version-badge]][version-link] [![Tests][workflow-badge]][workflow-link]
+
+[version-badge]:   https://img.shields.io/pypi/v/flask-pydantic-spec.svg?label=version
+[version-link]:    https://pypi.python.org/pypi/flask-pydantic-spec/
+[workflow-badge]:  https://github.com/turner-townsend/flask-pydantic-spec/actions/workflows/test-static-analysis.yml/badge.svg
+[workflow-link]:   https://github.com/turner-townsend/flask-pydantic-spec/actions/workflows/test-static-analysis.yml
 
 A library to make it easy to add OpenAPI documentation to your Flask app, and validate the requests using [Pydantic](https://github.com/samuelcolvin/pydantic/).
 

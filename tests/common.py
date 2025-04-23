@@ -2,7 +2,7 @@ from datetime import date
 from enum import IntEnum, Enum
 from typing import List, Optional
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, v1
 from werkzeug.routing import BaseConverter
 
 
@@ -89,6 +89,60 @@ class UnknownConverter(BaseConverter):
 
     def to_url(self, value) -> str:
         return str(value)
+
+
+class QueryV1(v1.BaseModel):
+    order: Optional[Order] = None
+
+
+class QueryParamsV1(v1.BaseModel):
+    name: Optional[List[str]] = None
+
+
+class UserV1(v1.BaseModel):
+    name: str
+
+
+class UsersV1(v1.BaseModel):
+    data: List[UserV1]
+
+
+class JSONV1(v1.BaseModel):
+    name: str
+    limit: int
+
+
+class RespV1(v1.BaseModel):
+    name: str
+    score: List[int]
+
+
+class HeadersV1(v1.BaseModel):
+    lang: Language
+
+    @v1.root_validator(pre=True)
+    def lower_keys(cls, values):
+        return {key.lower(): value for key, value in values.items()}
+
+
+class CookiesV1(v1.BaseModel):
+    pub: str
+
+
+class DemoModelV1(v1.BaseModel):
+    uid: int
+    limit: int
+    name: str
+
+
+class FileMetadataV1(v1.BaseModel):
+    type: str
+    created_at: date
+
+
+class FileNameV1(v1.BaseModel):
+    file_name: str
+    data: FileMetadataV1
 
 
 def get_paths(spec):

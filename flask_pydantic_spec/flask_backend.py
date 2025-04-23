@@ -3,10 +3,10 @@ import gzip
 import json
 import logging
 
-from typing import Optional, Mapping, Callable, Any, Tuple, List, Type, Iterable, Dict
+from typing import Optional, Mapping, Callable, Any, Tuple, List, Iterable, Dict, Type
 from dataclasses import dataclass
 
-from pydantic import ValidationError, BaseModel
+from pydantic import ValidationError, v1
 from flask import (
     request,
     abort,
@@ -21,16 +21,16 @@ from werkzeug.routing import Rule, parse_converter_args
 
 from .config import Config
 from .page import PAGES
-from .types import ResponseBase, RequestBase
-from .utils import parse_multi_dict, parse_rule
+from .types import BaseModelUnion, ResponseBase, RequestBase
+from .utils import load_model_schema, parse_multi_dict, parse_rule
 
 
 @dataclass
 class Context:
-    query: Optional[BaseModel]
-    body: Optional[BaseModel]
-    headers: Optional[BaseModel]
-    cookies: Optional[BaseModel]
+    query: Optional[BaseModelUnion]
+    body: Optional[BaseModelUnion]
+    headers: Optional[BaseModelUnion]
+    cookies: Optional[BaseModelUnion]
 
 
 class FlaskBackend:
@@ -131,10 +131,10 @@ class FlaskBackend:
     def request_validation(
         self,
         request: FlaskRequest,
-        query: Optional[Type[BaseModel]],
+        query: Optional[Type[BaseModelUnion]],
         body: Optional[RequestBase],
-        headers: Optional[Type[BaseModel]],
-        cookies: Optional[Type[BaseModel]],
+        headers: Optional[Type[BaseModelUnion]],
+        cookies: Optional[Type[BaseModelUnion]],
     ) -> None:
         raw_query = request.args or None
         if raw_query is not None:
@@ -164,24 +164,24 @@ class FlaskBackend:
             request,
             "context",
             Context(
-                query=query.model_validate(req_query) if query else None,
+                query=load_model_schema(query, req_query) if query is not None else None,
                 body=(
-                    getattr(body, "model").model_validate(parsed_body)
+                    load_model_schema(getattr(body, "model"), parsed_body)
                     if body and getattr(body, "model")
                     else None
                 ),
-                headers=headers.model_validate(dict(req_headers)) if headers else None,
-                cookies=cookies.model_validate(dict(req_cookies)) if cookies else None,
+                headers=load_model_schema(headers, dict(req_headers)) if headers else None,
+                cookies=load_model_schema(cookies, dict(req_cookies)) if cookies else None,
             ),
         )
 
     def validate(
         self,
         func: Callable,
-        query: Optional[Type[BaseModel]],
+        query: Optional[Type[BaseModelUnion]],
         body: Optional[RequestBase],
-        headers: Optional[Type[BaseModel]],
-        cookies: Optional[Type[BaseModel]],
+        headers: Optional[Type[BaseModelUnion]],
+        cookies: Optional[Type[BaseModelUnion]],
         resp: Optional[ResponseBase],
         before: Callable,
         after: Callable,
@@ -191,7 +191,7 @@ class FlaskBackend:
         response, req_validation_error, resp_validation_error = None, None, None
         try:
             self.request_validation(request, query, body, headers, cookies)
-        except ValidationError as err:
+        except (ValidationError, v1.ValidationError) as err:
             req_validation_error = err
             response = make_response(
                 jsonify(json.loads(err.json())), self.config.VALIDATION_ERROR_CODE
@@ -207,8 +207,8 @@ class FlaskBackend:
             model = resp.find_model(response.status_code)
             if model:
                 try:
-                    model.model_validate(response.get_json())
-                except ValidationError as err:
+                    load_model_schema(model, response.get_json())
+                except (ValidationError, v1.ValidationError) as err:
                     resp_validation_error = err
                     response = make_response(jsonify({"message": "response validation error"}), 500)
 

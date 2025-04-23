@@ -8,14 +8,24 @@ from flask_pydantic_spec.types import (
     MultipartFormRequest,
 )
 
-from .common import DemoModel
+from .common import DemoModel, DemoModelV1
 
 
 class NormalClass:
     pass
 
 
-def test_init_response():
+@pytest.fixture(
+    params=[
+        pytest.param(DemoModel, id="v2"),
+        pytest.param(DemoModelV1, id="v1"),
+    ]
+)
+def model_cls(request):
+    return request.param
+
+
+def test_init_response(model_cls):
     for args, kwargs in [
         ([200], {}),
         (["HTTP_110"], {}),
@@ -24,27 +34,28 @@ def test_init_response():
         with pytest.raises(AssertionError):
             Response(*args, **kwargs)
 
-    resp = Response("HTTP_200", HTTP_201=DemoModel)
+    resp = Response("HTTP_200", HTTP_201=model_cls)
     assert resp.has_model()
-    assert resp.find_model(201) == DemoModel
-    assert DemoModel in resp.models
+    assert resp.find_model(201) == model_cls
+    assert model_cls in resp.models
 
-    resp = Response(HTTP_200=None, HTTP_403=DemoModel)
+    resp = Response(HTTP_200=None, HTTP_403=model_cls)
     assert resp.has_model()
-    assert resp.find_model(403) == DemoModel
+    assert resp.find_model(403) == model_cls
     assert resp.find_model(200) is None
-    assert DemoModel in resp.models
+    assert model_cls in resp.models
 
     assert not Response().has_model()
 
 
-def test_response_spec():
-    resp = Response("HTTP_200", HTTP_201=DemoModel)
+def test_response_spec(model_cls):
+    resp = Response("HTTP_200", HTTP_201=model_cls)
     spec = resp.generate_spec()
     assert spec["200"]["description"] == DEFAULT_CODE_DESC["HTTP_200"]
     assert spec["201"]["description"] == DEFAULT_CODE_DESC["HTTP_201"]
     assert (
-        spec["201"]["content"]["application/json"]["schema"]["$ref"].split("/")[-1] == "DemoModel"
+        spec["201"]["content"]["application/json"]["schema"]["$ref"].split("/")[-1]
+        == model_cls.__name__
     )
 
     assert spec.get(200) is None
@@ -77,8 +88,8 @@ def test_file_request_spec():
     }
 
 
-def test_multipart_form_spec():
-    form = MultipartFormRequest(DemoModel, "fileName")
+def test_multipart_form_spec(model_cls):
+    form = MultipartFormRequest(model_cls, "fileName")
     spec = form.generate_spec()
     assert spec["content"] == {
         "multipart/form-data": {

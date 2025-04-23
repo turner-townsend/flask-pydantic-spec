@@ -12,6 +12,11 @@ def test_plugin_spec():
         "/api/user",
         "/api/user/{name}",
         "/ping",
+        "/v1/api/file",
+        "/v1/api/group/{name}",
+        "/v1/api/user",
+        "/v1/api/user/{name}",
+        "/v1/ping",
     ]
 
     ping = api.spec["paths"]["/ping"]["get"]

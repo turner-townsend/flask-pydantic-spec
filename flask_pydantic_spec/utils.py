@@ -17,17 +17,18 @@ from typing import (
 )
 
 from werkzeug.datastructures import MultiDict
-from pydantic import BaseModel
+from pydantic import BaseModel, v1
 from werkzeug.routing import Rule
 
-from .types import Response, RequestBase, Request
+from .constants import OPENAPI_SCHEMA_TEMPLATE
+from .types import BaseModelT, BaseModelUnion, Response, RequestBase, Request
 
 logger = logging.getLogger(__name__)
 
 VALID_NAME_REGEX = re.compile(r"[^a-zA-Z0-9._-]")
 
 
-def get_model_name(model: Type[BaseModel]) -> str:
+def get_model_name(model: Type[BaseModelUnion]) -> str:
     """Gets the name of a model name as an OpenAPI 3.1 compatible name
 
     Replaces any non standard characters in a string with `_`
@@ -36,6 +37,24 @@ def get_model_name(model: Type[BaseModel]) -> str:
     AB_C_D__
     """
     return VALID_NAME_REGEX.sub("_", model.__name__)
+
+
+def get_model_schema(model: Type[BaseModelUnion]) -> Dict[str, Any]:
+    if issubclass(model, BaseModel):
+        return model.model_json_schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
+    elif issubclass(model, v1.BaseModel):
+        return model.schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
+    else:
+        raise ValueError(f"Unsupported model type: {type(model)}")
+
+
+def load_model_schema(model: Type[BaseModelT], data: Any) -> BaseModelT:
+    if issubclass(model, BaseModel):
+        return model.model_validate(data)  # type: ignore[return-value]
+    elif issubclass(model, v1.BaseModel):
+        return model.parse_obj(data)  # type: ignore[return-value]
+    else:
+        raise ValueError(f"Unsupported model type: {type(model)}")
 
 
 def parse_comments(func: Callable) -> Tuple[Optional[str], Optional[str]]:

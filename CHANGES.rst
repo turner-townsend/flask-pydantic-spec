@@ -1,5 +1,13 @@
 .. currentmodule:: flask-pydantic-spec
 
+VERSION 0.8.0
+-------------
+
+Release 2025-04-23
+
+- Add support for Pydantic V1 models alongside V2
+
+
 VERSION 0.7.0
 ------------
 

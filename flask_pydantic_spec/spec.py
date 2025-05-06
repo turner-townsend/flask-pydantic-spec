@@ -4,7 +4,6 @@ from functools import wraps
 from typing import Mapping, Optional, Type, Union, Callable, Iterable, Any, Dict
 
 from flask import Flask, Response as FlaskResponse
-from pydantic import BaseModel, v1
 from inflection import camelize
 
 from . import Request
@@ -87,7 +86,8 @@ class FlaskPydanticSpec:
     def bypass(self, func: Callable) -> bool:
         """Bypass routes not decorated by FlaskPydanticSpec
 
-        In OpenAPI 3.1, it's not valid to have a route that doesn't have at least one response attached
+        In OpenAPI 3.1, it's not valid to have a route that doesn't have at least one
+        response attached.
         """
         decorator = getattr(func, "_decorator", None)
         if decorator and decorator != self:

@@ -187,7 +187,7 @@ def app(api: FlaskPydanticSpec) -> Flask:
 
     @app.post("/v1/lone")
     @api.validate(
-        body=Request(ExampleV1Model),
+        body=ExampleV1Model,
         resp=Response(HTTP_200=ExampleV1NestedList, HTTP_400=ExampleV1NestedModel),
         tags=["lone"],
         deprecated=True,
@@ -395,4 +395,15 @@ def test_v1_routes_with_nullable_match(app: Flask, api: FlaskPydanticSpec, route
     assert v2_query_type == {
         "anyOf": [{"$ref": "#/components/schemas/TypeEnum"}, {"type": "null"}],
         "default": None,
+    }
+
+
+def test_v1_route_request_bodies(app: Flask, api: FlaskPydanticSpec):
+    api.register(app)
+    spec = api.spec
+
+    v1_spec = spec["paths"]["/v1/lone"]["post"]
+
+    assert v1_spec["requestBody"] == {
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ExampleV1Model"}}}
     }

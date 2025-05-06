@@ -81,7 +81,7 @@ def parse_request(func: Callable) -> Mapping[str, Any]:
         request_body = getattr(func, "body")
         if isinstance(request_body, RequestBase):
             result: Mapping[str, Any] = request_body.generate_spec()
-        elif issubclass(request_body, BaseModel):
+        elif issubclass(request_body, (BaseModel, v1.BaseModel)):
             result = Request(request_body).generate_spec()
         else:
             result = {}

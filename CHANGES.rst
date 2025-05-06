@@ -1,5 +1,13 @@
 .. currentmodule:: flask-pydantic-spec
 
+VERSION 0.8.1
+-------------
+
+Release 2025-05-06
+
+- Fix bug in generating spec for unwrapped v1 models.
+
+
 VERSION 0.8.0
 -------------
 

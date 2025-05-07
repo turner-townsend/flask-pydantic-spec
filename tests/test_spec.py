@@ -219,6 +219,10 @@ def app(api: FlaskPydanticSpec) -> Flask:
     def get_enum_v1(example):
         pass
 
+    @app.get("/should-bypass")
+    def should_bypass():
+        pass
+
     return app
 
 
@@ -417,3 +421,7 @@ def test_v1_nested_model_definitions(spec: Mapping[str, Any]):
         "definitions" not in model_spec
         for model_name, model_spec in spec["components"]["schemas"].items()
     )
+
+
+def test_undecorated_routes_should_be_skipped(spec: Mapping[str, Any]):
+    assert "/should-bypass" not in spec["paths"]

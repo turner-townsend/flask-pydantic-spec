@@ -90,7 +90,7 @@ class FlaskPydanticSpec:
         response attached.
         """
         decorator = getattr(func, "_decorator", None)
-        if decorator and decorator != self:
+        if decorator is None or decorator != self:
             return True
         return False
 
@@ -214,6 +214,8 @@ class FlaskPydanticSpec:
                     routes[path][method.lower()]["requestBody"] = self._parse_request_body(
                         request_body
                     )
+            if not routes[path]:
+                del routes[path]
 
         spec = {
             "openapi": self.config.OPENAPI_VERSION,

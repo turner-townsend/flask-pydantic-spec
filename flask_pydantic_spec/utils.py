@@ -43,7 +43,12 @@ def get_model_schema(model: Type[BaseModelUnion]) -> Dict[str, Any]:
     if issubclass(model, BaseModel):
         return model.model_json_schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
     elif issubclass(model, v1.BaseModel):
-        return model.schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
+        schema = model.schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
+        if "definitions" in schema:
+            # definitions was renamed to $defs
+            # https://opis.io/json-schema/2.x/structure.html#defs-keyword
+            schema["$defs"] = schema.pop("definitions")
+        return schema
     else:
         raise ValueError(f"Unsupported model type: {type(model)}")
 

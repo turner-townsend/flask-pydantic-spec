@@ -1,6 +1,6 @@
 from enum import Enum
 import re
-from typing import Any, Optional, List
+from typing import Any, Mapping, Optional, List
 
 import pytest
 from flask import Flask
@@ -222,6 +222,12 @@ def app(api: FlaskPydanticSpec) -> Flask:
     return app
 
 
+@pytest.fixture
+def spec(app: Flask, api: FlaskPydanticSpec) -> Mapping[str, Any]:
+    api.register(app)
+    return api.spec
+
+
 def test_two_endpoints_with_the_same_path(app: Flask, api: FlaskPydanticSpec):
     api.register(app)
     spec = api.spec
@@ -398,12 +404,16 @@ def test_v1_routes_with_nullable_match(app: Flask, api: FlaskPydanticSpec, route
     }
 
 
-def test_v1_route_request_bodies(app: Flask, api: FlaskPydanticSpec):
-    api.register(app)
-    spec = api.spec
-
+def test_v1_route_request_bodies(spec: Mapping[str, Any]):
     v1_spec = spec["paths"]["/v1/lone"]["post"]
 
     assert v1_spec["requestBody"] == {
         "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ExampleV1Model"}}}
     }
+
+
+def test_v1_nested_model_definitions(spec: Mapping[str, Any]):
+    assert all(
+        "definitions" not in model_spec
+        for model_name, model_spec in spec["components"]["schemas"].items()
+    )

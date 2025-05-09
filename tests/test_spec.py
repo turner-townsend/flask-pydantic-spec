@@ -223,6 +223,12 @@ def app(api: FlaskPydanticSpec) -> Flask:
     def should_bypass():
         pass
 
+    @app.get("/v1/stacked", endpoint="get_v1_stacked")
+    @app.get("/v2/stacked", endpoint="get_v2_stacked")
+    @api.validate(resp=Response(HTTP_200=None))
+    def get_stacked():
+        pass
+
     return app
 
 
@@ -425,3 +431,11 @@ def test_v1_nested_model_definitions(spec: Mapping[str, Any]):
 
 def test_undecorated_routes_should_be_skipped(spec: Mapping[str, Any]):
     assert "/should-bypass" not in spec["paths"]
+
+
+def test_stacked(spec: Mapping[str, Any]):
+    v1 = spec["paths"]["/v1/stacked"]
+    v2 = spec["paths"]["/v2/stacked"]
+
+    assert v1["get"]["operationId"] == "getV1Stacked"
+    assert v2["get"]["operationId"] == "getV2Stacked"

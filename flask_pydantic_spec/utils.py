@@ -180,17 +180,6 @@ def has_model(func: Callable) -> bool:
     return False
 
 
-def parse_name(func: Callable) -> str:
-    """
-    the func can be
-
-        * undecorated functions
-        * decorated functions
-        * decorated class methods
-    """
-    return func.__name__
-
-
 def default_before_handler(
     req: Request, resp: Response, req_validation_error: Any, instance: BaseModel
 ) -> None:

@@ -16,7 +16,6 @@ from .utils import (
     parse_request,
     parse_params,
     parse_resp,
-    parse_name,
     default_before_handler,
     default_after_handler,
     get_model_name,
@@ -191,7 +190,7 @@ class FlaskPydanticSpec:
                 if self.backend.bypass(func, method) or self.bypass(func):
                     continue
 
-                name = parse_name(func)
+                name = route.endpoint
                 summary, desc = parse_comments(func)
                 func_tags = getattr(func, "tags", ())
                 for tag in func_tags:

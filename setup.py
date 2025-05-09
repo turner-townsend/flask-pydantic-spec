@@ -14,7 +14,7 @@ with open(path.join(here, "requirements/production.txt"), encoding="utf-8") as f
 
 setup(
     name="flask_pydantic_spec",
-    version="0.8.2",
+    version="0.8.3",
     author="Chris Gearing, Simon Hayward, Rob Young, Donald Fleming",
     author_email="chris.gearing@turntown.digital",
     description=(

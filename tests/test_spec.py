@@ -153,7 +153,11 @@ def app(api: FlaskPydanticSpec) -> Flask:
         pass
 
     @app.get("/query")
-    @api.validate(query=ExampleQuery, resp=Response(HTTP_200=List[ExampleModel]))
+    @api.validate(
+        query=ExampleQuery,
+        resp=Response(HTTP_200=List[ExampleModel]),
+        tags=["alpha"],
+    )
     def get_query():
         pass
 
@@ -205,7 +209,9 @@ def app(api: FlaskPydanticSpec) -> Flask:
         pass
 
     @app.get("/v1/query")
-    @api.validate(query=ExampleV1Query, resp=Response(HTTP_200=List[ExampleV1Model]))
+    @api.validate(
+        query=ExampleV1Query, resp=Response(HTTP_200=List[ExampleV1Model]), tags=["alpha"]
+    )
     def get_query_v1():
         pass
 
@@ -258,8 +264,10 @@ def test_openapi_tags(app: Flask, api: FlaskPydanticSpec):
     api.register(app)
     spec = api.spec
 
-    assert spec["tags"][0]["name"] == "lone"
-    assert spec["tags"][0]["description"] == "a lone api"
+    assert spec["tags"] == [
+        {"name": "alpha"},
+        {"name": "lone", "description": "a lone api"},
+    ]
 
 
 def test_openapi_deprecated(app: Flask, api: FlaskPydanticSpec):

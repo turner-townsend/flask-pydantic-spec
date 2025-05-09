@@ -4,7 +4,7 @@ from .test_plugin_flask import api as flask_api
 
 def test_plugin_spec():
     api = flask_api
-    assert api.spec["tags"] == [{"name": tag} for tag in ("test", "health", "api")]
+    assert api.spec["tags"] == [{"name": tag} for tag in ("api", "health", "test")]
 
     assert get_paths(api.spec) == [
         "/api/file",

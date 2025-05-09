@@ -225,7 +225,7 @@ class FlaskPydanticSpec:
                     "version": self.config.VERSION,
                 },
             },
-            "tags": list(tags.values()),
+            "tags": sorted(tags.values(), key=lambda t: t["name"]),
             "paths": {**routes},
             "components": {"schemas": {**self._get_model_definitions()}},
         }

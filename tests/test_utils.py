@@ -6,7 +6,6 @@ from flask_pydantic_spec.utils import (
     parse_params,
     parse_resp,
     has_model,
-    parse_name,
 )
 from flask_pydantic_spec.spec import FlaskPydanticSpec
 from flask_pydantic_spec.types import Response, Request, _parse_code
@@ -57,13 +56,6 @@ def test_parse_code():
 
     assert _parse_code("200") is None
     assert _parse_code("HTTP_404") == "404"
-
-
-def test_parse_name():
-    assert parse_name(lambda x: x) == "<lambda>"
-    assert parse_name(undecorated_func) == "undecorated_func"
-    assert parse_name(demo_func) == "demo_func"
-    assert parse_name(demo_class.demo_method) == "demo_method"
 
 
 def test_has_model():

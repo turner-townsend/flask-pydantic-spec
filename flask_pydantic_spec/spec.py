@@ -35,7 +35,7 @@ class FlaskPydanticSpec:
     :param str backend_name: choose from ('flask')
     :param backend: a backend that inherit `flask_pydantic_spec.FlaskBackend`
     :param app: backend framework application instance (you can also register to it later)
-    :param before: a callback function of the form :meth:`fla.utils.default_before_handler`
+    :param before: a callback function of the form :meth:`flask.utils.default_before_handler`
         ``func(req, resp, req_validation_error, instance)``
         that will be called after the request validation before the endpoint function
     :param after: a callback function of the form :meth:`spectree.utils.default_after_handler`
@@ -190,7 +190,7 @@ class FlaskPydanticSpec:
                 if self.backend.bypass(func, method) or self.bypass(func):
                     continue
 
-                name = route.endpoint
+                operation_id = self.backend.get_operation_id(route, method, func)
                 summary, desc = parse_comments(func)
                 func_tags = getattr(func, "tags", ())
                 for tag in func_tags:
@@ -198,8 +198,8 @@ class FlaskPydanticSpec:
                         tags[tag] = tag_lookup.get(tag, {"name": tag})
 
                 routes[path][method.lower()] = {
-                    "summary": summary or f"{name} <{method}>",
-                    "operationId": camelize(f"{name}", False),
+                    "summary": summary or f"{operation_id} <{method}>",
+                    "operationId": camelize(f"{operation_id}", False),
                     "description": desc or "",
                     "tags": getattr(func, "tags", []),
                     "parameters": parse_params(func, parameters[:], self.models),

@@ -1,14 +1,16 @@
 from enum import Enum
 import re
-from typing import Any, Mapping, Optional, List
+from typing import Any, Callable, Mapping, Optional, List
 
 import pytest
 from flask import Flask
 from openapi_spec_validator import OpenAPIV31SpecValidator
 from pydantic import BaseModel, StrictFloat, Field, RootModel
 from pydantic import v1
+from werkzeug.routing import Rule
 
 from flask_pydantic_spec import Response
+from flask_pydantic_spec.flask_backend import FlaskBackend
 from flask_pydantic_spec.types import FileResponse, Request, MultipartFormRequest
 from flask_pydantic_spec import FlaskPydanticSpec
 from flask_pydantic_spec.config import Config
@@ -84,12 +86,18 @@ def name():
     return "flask"
 
 
+class FlaskBackendUsingEndpoint(FlaskBackend):
+    def get_operation_id(self, route: Rule, method: str, func: Callable) -> str:
+        return route.endpoint
+
+
 @pytest.fixture
 def api(name) -> FlaskPydanticSpec:
     return FlaskPydanticSpec(
         name,
         tags=[{"name": "lone", "description": "a lone api"}],
         validation_error_code=400,
+        backend=FlaskBackendUsingEndpoint,
     )
 
 

@@ -3,7 +3,7 @@ import gzip
 import json
 import logging
 
-from typing import Optional, Mapping, Callable, Any, Tuple, List, Iterable, Dict, Type
+from typing import Iterator, Optional, Mapping, Callable, Any, Tuple, List, Iterable, Dict, Type
 from dataclasses import dataclass
 
 from pydantic import ValidationError, v1
@@ -39,7 +39,7 @@ class FlaskBackend:
         self.config: Config = validator.config
         self.logger: logging.Logger = logging.getLogger(__name__)
 
-    def find_routes(self) -> Any:
+    def find_routes(self) -> Iterator[Rule]:
         for rule in self.app.url_map.iter_rules():
             if any(str(rule).startswith(path) for path in (f"/{self.config.PATH}", "/static")):
                 continue
@@ -50,14 +50,17 @@ class FlaskBackend:
             return True
         return False
 
-    def parse_func(self, route: Any) -> Any:
+    def parse_func(self, route: Rule) -> Iterator[Tuple[str, Callable]]:
         func = self.app.view_functions[route.endpoint]
-        for method in route.methods:
+        for method in route.methods or []:
             yield method, func
 
-    def parse_path(self, route: Rule) -> Tuple[str, List[Any]]:
+    def get_operation_id(self, route: Rule, method: str, func: Callable) -> str:
+        return func.__name__
+
+    def parse_path(self, route: Rule) -> Tuple[str, List[Mapping[str, Any]]]:
         subs = []
-        parameters = []
+        parameters: List[Mapping[str, Any]] = []
 
         for converter, arguments, variable in parse_rule(route):
             if converter is None:

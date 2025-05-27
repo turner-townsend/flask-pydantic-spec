@@ -3,7 +3,19 @@ import gzip
 import json
 import logging
 
-from typing import Iterator, Optional, Mapping, Callable, Any, Tuple, List, Iterable, Dict, Type, cast
+from typing import (
+    Iterator,
+    Optional,
+    Mapping,
+    Callable,
+    Any,
+    Tuple,
+    List,
+    Iterable,
+    Dict,
+    Type,
+    cast,
+)
 from dataclasses import dataclass
 
 from pydantic import ValidationError, v1

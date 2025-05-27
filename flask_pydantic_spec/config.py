@@ -1,5 +1,12 @@
+from enum import Enum
 import logging
 from typing import Set, Optional, Dict, Any, Mapping, List
+
+
+class OperationIdType(Enum):
+    endpoint_name_short = "endpoint_name_short"
+    endpoint_name_full = "endpoint_name_full"
+    function_name = "function_name"
 
 
 class Config:
@@ -10,6 +17,7 @@ class Config:
     :ivar VERSION: service version
     :ivar DOMAIN: service host domain
     :ivar VALIDATION_ERROR_CODE: code for validation error responses
+    :ivar OPERATION_ID_TYPE: type of operation ID to use in OpenAPI spec
     """
 
     def __init__(self, **kwargs: Dict[str, Any]) -> None:
@@ -20,6 +28,7 @@ class Config:
         self._SUPPORT_UI: Set[str] = {"redoc", "swagger"}
         self._SUPPORT_MODE: Set[str] = {"normal", "strict", "greedy"}
         self.VALIDATION_ERROR_CODE: int = 422
+        self.OPERATION_ID_TYPE: OperationIdType = OperationIdType.endpoint_name_short
 
         self.TITLE: str = "Service API Document"
         self.VERSION: str = "0.1"

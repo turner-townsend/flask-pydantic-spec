@@ -86,18 +86,13 @@ def name():
     return "flask"
 
 
-class FlaskBackendUsingEndpoint(FlaskBackend):
-    def get_operation_id(self, route: Rule, method: str, func: Callable) -> str:
-        return route.endpoint
-
-
 @pytest.fixture
 def api(name) -> FlaskPydanticSpec:
     return FlaskPydanticSpec(
         name,
         tags=[{"name": "lone", "description": "a lone api"}],
         validation_error_code=400,
-        backend=FlaskBackendUsingEndpoint,
+        backend=FlaskBackend,
     )
 
 

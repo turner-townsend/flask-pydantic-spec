@@ -28,7 +28,7 @@ class Config:
         self._SUPPORT_UI: Set[str] = {"redoc", "swagger"}
         self._SUPPORT_MODE: Set[str] = {"normal", "strict", "greedy"}
         self.VALIDATION_ERROR_CODE: int = 422
-        self.OPERATION_ID_TYPE: OperationIdType = OperationIdType.endpoint_name_short
+        self.OPERATION_ID_TYPE: OperationIdType = OperationIdType.function_name
 
         self.TITLE: str = "Service API Document"
         self.VERSION: str = "0.1"

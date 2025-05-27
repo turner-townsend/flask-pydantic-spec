@@ -13,7 +13,7 @@ from flask_pydantic_spec import Response
 from flask_pydantic_spec.flask_backend import FlaskBackend
 from flask_pydantic_spec.types import FileResponse, Request, MultipartFormRequest
 from flask_pydantic_spec import FlaskPydanticSpec
-from flask_pydantic_spec.config import Config
+from flask_pydantic_spec.config import Config, OperationIdType
 from flask_pydantic_spec.utils import get_model_name
 
 from .common import ExampleConverter, UnknownConverter
@@ -93,6 +93,7 @@ def api(name) -> FlaskPydanticSpec:
         tags=[{"name": "lone", "description": "a lone api"}],
         validation_error_code=400,
         backend=FlaskBackend,
+        operation_id_type=OperationIdType.endpoint_name_short,
     )
 
 

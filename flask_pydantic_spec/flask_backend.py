@@ -3,7 +3,19 @@ import gzip
 import json
 import logging
 
-from typing import Iterator, Optional, Mapping, Callable, Any, Tuple, List, Iterable, Dict, Type
+from typing import (
+    Iterator,
+    Optional,
+    Mapping,
+    Callable,
+    Any,
+    Tuple,
+    List,
+    Iterable,
+    Dict,
+    Type,
+    cast,
+)
 from dataclasses import dataclass
 
 from pydantic import ValidationError, v1
@@ -19,7 +31,7 @@ from flask import (
 from werkzeug.datastructures import Headers
 from werkzeug.routing import Rule, parse_converter_args
 
-from .config import Config
+from .config import Config, OperationIdType
 from .page import PAGES
 from .types import BaseModelUnion, ResponseBase, RequestBase
 from .utils import load_model_schema, parse_multi_dict, parse_rule
@@ -56,6 +68,11 @@ class FlaskBackend:
             yield method, func
 
     def get_operation_id(self, route: Rule, method: str, func: Callable) -> str:
+        if self.config.OPERATION_ID_TYPE == OperationIdType.endpoint_name_short:
+            return cast(str, route.endpoint).split(".")[-1]
+        elif self.config.OPERATION_ID_TYPE == OperationIdType.endpoint_name_full:
+            return cast(str, route.endpoint)
+
         return func.__name__
 
     def parse_path(self, route: Rule) -> Tuple[str, List[Mapping[str, Any]]]:

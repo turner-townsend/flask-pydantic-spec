@@ -35,7 +35,7 @@ setup(
         "Operating System :: OS Independent",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     install_requires=requires,
     extras_require={
         "flask": ["flask"],

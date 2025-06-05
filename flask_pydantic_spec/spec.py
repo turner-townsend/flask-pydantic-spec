@@ -171,7 +171,7 @@ class FlaskPydanticSpec:
 
             if extensions:
                 for key, value in extensions.items():
-                    if not key or not key.startswith('x-'):
+                    if not key or not key.startswith("x-"):
                         raise ValueError("Swagger vendor extensions must begin with 'x-'")
                 setattr(validation, "extensions", extensions)
 

@@ -288,17 +288,15 @@ def test_openapi_extensions(app: Flask, api: FlaskPydanticSpec):
 
 @pytest.mark.parametrize(
     ["extensions"],
-    [
-        [{"": "value"}],
-        [{"key": "value"}]
-    ],
+    [[{"": "value"}], [{"key": "value"}]],
     ids=[
         "empty key",
         "key doesn't start with x",
-    ]
+    ],
 )
 def test_openapi_extensions__fails(extensions: Dict, app: Flask, api: FlaskPydanticSpec):
     with pytest.raises(ValueError) as exc_info:
+
         @api.validate(resp=Response(HTTP_200=None), extensions=extensions)
         def get_with_invalid_extension():
             pass

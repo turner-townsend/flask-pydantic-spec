@@ -1,6 +1,6 @@
 from enum import Enum
 import re
-from typing import Any, Callable, Mapping, Optional, List
+from typing import Any, Callable, Dict, Mapping, Optional, List
 
 import pytest
 from flask import Flask
@@ -229,6 +229,11 @@ def app(api: FlaskPydanticSpec) -> Flask:
     def get_enum_v1(example):
         pass
 
+    @app.get("/extensions")
+    @api.validate(resp=Response(HTTP_200=ExampleModel), extensions={"x-key": "value"})
+    def extensions():
+        pass
+
     @app.get("/should-bypass")
     def should_bypass():
         pass
@@ -272,6 +277,33 @@ def test_openapi_tags(app: Flask, api: FlaskPydanticSpec):
         {"name": "alpha"},
         {"name": "lone", "description": "a lone api"},
     ]
+
+
+def test_openapi_extensions(app: Flask, api: FlaskPydanticSpec):
+    api.register(app)
+    spec = api.spec
+
+    assert {"x-key": "value"}.items() <= spec["paths"]["/extensions"]["get"].items()
+
+
+@pytest.mark.parametrize(
+    ["extensions"],
+    [
+        [{"": "value"}],
+        [{"key": "value"}]
+    ],
+    ids=[
+        "empty key",
+        "key doesn't start with x",
+    ]
+)
+def test_openapi_extensions__fails(extensions: Dict, app: Flask, api: FlaskPydanticSpec):
+    with pytest.raises(ValueError) as exc_info:
+        @api.validate(resp=Response(HTTP_200=None), extensions=extensions)
+        def get_with_invalid_extension():
+            pass
+
+    assert "Swagger vendor extensions must begin with 'x-'" in str(exc_info)
 
 
 def test_openapi_deprecated(app: Flask, api: FlaskPydanticSpec):

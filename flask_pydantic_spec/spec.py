@@ -104,6 +104,7 @@ class FlaskPydanticSpec:
         deprecated: bool = False,
         before: Optional[Callable] = None,
         after: Optional[Callable] = None,
+        extensions: Optional[Dict[str, Any]] = None,
     ) -> Callable:
         """
         - validate query, body, headers in request
@@ -120,6 +121,7 @@ class FlaskPydanticSpec:
                     should be transitioned out of usage
         :param before: :meth:`spectree.utils.default_before_handler` for specific endpoint
         :param after: :meth:`spectree.utils.default_after_handler` for specific endpoint
+        :param extensions: a key value map of extension strings
         """
 
         def decorate_validation(func: Callable) -> Callable:
@@ -167,6 +169,12 @@ class FlaskPydanticSpec:
             if deprecated:
                 setattr(validation, "deprecated", True)
 
+            if extensions:
+                for key, value in extensions.items():
+                    if not key or not key.startswith('x-'):
+                        raise ValueError("Swagger vendor extensions must begin with 'x-'")
+                setattr(validation, "extensions", extensions)
+
             # register decorator
             setattr(validation, "_decorator", self)
             return validation
@@ -207,6 +215,10 @@ class FlaskPydanticSpec:
                 }
                 if hasattr(func, "deprecated"):
                     routes[path][method.lower()]["deprecated"] = True
+
+                extensions = getattr(func, "extensions", {})
+                if extensions:
+                    routes[path][method.lower()].update(**extensions)
 
                 request_body = parse_request(func)
                 if request_body:

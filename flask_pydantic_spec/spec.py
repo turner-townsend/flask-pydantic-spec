@@ -86,7 +86,7 @@ class FlaskPydanticSpec:
             self.blueprint = app_or_blueprint
         else:
             raise TypeError(f"unknown type provided {app_or_blueprint.__class__}")
-        
+
         if register_route:
             self.register_spec_routes(app_or_blueprint)
 
@@ -234,6 +234,10 @@ class FlaskPydanticSpec:
         tag_lookup = {tag["name"]: tag for tag in self.config.TAGS}
         routes: Dict[str, Any] = {}
         tags: Dict[str, Any] = {}
+
+        if self.app is None:
+            raise RuntimeError("Flask app must be registered this instance to generate a spec")
+
         for route in self.backend.find_routes(self.app):
             path, parameters = self.backend.parse_path(route)
             routes[path] = routes.get(path, {})

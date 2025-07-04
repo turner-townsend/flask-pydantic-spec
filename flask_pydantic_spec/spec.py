@@ -82,15 +82,13 @@ class FlaskPydanticSpec:
         if isinstance(app_or_blueprint, Flask):
             self.app = app_or_blueprint
             self.backend.app = app_or_blueprint
-            if register_route:
-                self.register_spec_routes(self.app)
-
         elif isinstance(app_or_blueprint, Blueprint):
             self.blueprint = app_or_blueprint
-            if register_route:
-                self.register_spec_routes(self.blueprint)
         else:
             raise TypeError(f"unknown type provided {app_or_blueprint.__class__}")
+        
+        if register_route:
+            self.register_spec_routes(app_or_blueprint)
 
     def register_spec_routes(self, app_or_blueprint: Union[Flask, Blueprint]) -> None:
         app_or_blueprint.add_url_rule(

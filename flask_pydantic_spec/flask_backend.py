@@ -68,8 +68,9 @@ class FlaskBackend:
 
     def parse_func(self, app: Flask, route: Rule) -> Iterator[Tuple[str, Callable]]:
         func = app.view_functions[route.endpoint]
-        for method in route.methods:
-            yield method, func
+        if route.methods:
+            for method in route.methods:
+                yield method, func
 
     def get_operation_id(self, route: Rule, method: str, func: Callable) -> str:
         if self.config.OPERATION_ID_TYPE == OperationIdType.endpoint_name_short:

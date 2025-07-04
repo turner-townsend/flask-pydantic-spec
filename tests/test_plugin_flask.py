@@ -54,7 +54,8 @@ api = FlaskPydanticSpec("flask", before=before_handler, after=after_handler, tit
 app = Flask(__name__)
 
 blueprint = Blueprint("blueprint-test", __name__, url_prefix="/blueprint")
-blueprint_api = FlaskPydanticSpec("flask")
+blueprint_api = api.for_blueprint(blueprint)
+
 
 @blueprint.get("/test")
 @blueprint_api.validate(headers=Headers, tags=["test", "health"], resp=Response(HTTP_200=Resp))
@@ -63,9 +64,6 @@ def ping():
     description"""
     return jsonify(name="Test", score=[10])
 
-
-blueprint_api.register(blueprint)
-app.register_blueprint(blueprint)
 
 @app.route("/ping")
 @api.validate(headers=Headers, tags=["test", "health"], resp=Response(HTTP_200=Resp))
@@ -189,6 +187,7 @@ def _upload_file():
     return jsonify(uid=1, limit=2, name=body.file_name)
 
 
+app.register_blueprint(blueprint)
 api.register(app)
 
 

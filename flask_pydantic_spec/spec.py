@@ -68,7 +68,11 @@ class FlaskPydanticSpec:
         if blueprint:
             self.register(blueprint)
 
-    def register(self, app_or_blueprint: Flask | Blueprint, register_route: bool = True) -> None:
+    def register(
+        self,
+        app_or_blueprint: Union[Flask, Blueprint],
+        register_route: bool = True,
+    ) -> None:
         """
         register to backend application
 

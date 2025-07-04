@@ -16,7 +16,7 @@ from flask_pydantic_spec import FlaskPydanticSpec
 from flask_pydantic_spec.config import Config, OperationIdType
 from flask_pydantic_spec.utils import get_model_name
 
-from .common import ExampleConverter, UnknownConverter
+from tests.common import ExampleConverter, UnknownConverter
 
 
 class ExampleModel(BaseModel):

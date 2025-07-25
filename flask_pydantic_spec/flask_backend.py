@@ -32,7 +32,6 @@ from werkzeug.datastructures import Headers
 from werkzeug.routing import Rule, parse_converter_args
 
 from .config import Config, OperationIdType
-from .page import PAGES
 from .types import BaseModelUnion, ResponseBase, RequestBase
 from .utils import load_model_schema, parse_multi_dict, parse_rule
 
@@ -46,14 +45,19 @@ class Context:
 
 
 class FlaskBackend:
+    app: Flask
+
     def __init__(self, validator: Any) -> None:
         self.validator = validator
         self.config: Config = validator.config
         self.logger: logging.Logger = logging.getLogger(__name__)
 
-    def find_routes(self) -> Iterator[Rule]:
-        for rule in self.app.url_map.iter_rules():
-            if any(str(rule).startswith(path) for path in (f"/{self.config.PATH}", "/static")):
+    def find_routes(self, app: Flask) -> Iterator[Rule]:
+        openapi_paths = [f"/{self.config.PATH}"]
+        for blueprint in app.blueprints.values():
+            openapi_paths.append(f"{blueprint.url_prefix}/{self.config.PATH}")
+        for rule in app.url_map.iter_rules():
+            if any(str(rule).startswith(path) for path in (*openapi_paths, "/static")):
                 continue
             yield rule
 
@@ -62,10 +66,11 @@ class FlaskBackend:
             return True
         return False
 
-    def parse_func(self, route: Rule) -> Iterator[Tuple[str, Callable]]:
-        func = self.app.view_functions[route.endpoint]
-        for method in route.methods or []:
-            yield method, func
+    def parse_func(self, app: Flask, route: Rule) -> Iterator[Tuple[str, Callable]]:
+        func = app.view_functions[route.endpoint]
+        if route.methods:
+            for method in route.methods:
+                yield method, func
 
     def get_operation_id(self, route: Rule, method: str, func: Callable) -> str:
         if self.config.OPERATION_ID_TYPE == OperationIdType.endpoint_name_short:
@@ -235,23 +240,6 @@ class FlaskBackend:
         after(request, response, resp_validation_error, None)
 
         return response
-
-    def register_route(self, app: Flask) -> None:
-        self.app = app
-        from flask import jsonify
-
-        self.app.add_url_rule(
-            self.config.spec_url,
-            "openapi",
-            lambda: jsonify(self.validator.spec),
-        )
-
-        for ui in PAGES:
-            self.app.add_url_rule(
-                f"/{self.config.PATH}/{ui}",
-                f"doc_page_{ui}",
-                lambda ui=ui: PAGES[ui].format(self.config),
-            )
 
 
 def _parse_custom_url_converter(converter: str, app: Flask) -> Optional[Dict[str, Any]]:

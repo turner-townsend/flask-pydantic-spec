@@ -16,7 +16,7 @@ from flask_pydantic_spec import FlaskPydanticSpec
 from flask_pydantic_spec.config import Config, OperationIdType
 from flask_pydantic_spec.utils import get_model_name
 
-from .common import ExampleConverter, UnknownConverter
+from tests.common import ExampleConverter, UnknownConverter
 
 
 class ExampleModel(BaseModel):
@@ -288,17 +288,15 @@ def test_openapi_extensions(app: Flask, api: FlaskPydanticSpec):
 
 @pytest.mark.parametrize(
     ["extensions"],
-    [
-        [{"": "value"}],
-        [{"key": "value"}]
-    ],
+    [[{"": "value"}], [{"key": "value"}]],
     ids=[
         "empty key",
         "key doesn't start with x",
-    ]
+    ],
 )
 def test_openapi_extensions__fails(extensions: Dict, app: Flask, api: FlaskPydanticSpec):
     with pytest.raises(ValueError) as exc_info:
+
         @api.validate(resp=Response(HTTP_200=None), extensions=extensions)
         def get_with_invalid_extension():
             pass

@@ -9,7 +9,7 @@ from unittest.mock import ANY
 
 import pytest
 import json
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, Blueprint
 from werkzeug.datastructures import FileStorage
 from werkzeug.test import Client
 
@@ -52,6 +52,17 @@ def api_after_handler(req, resp, err, _):
 
 api = FlaskPydanticSpec("flask", before=before_handler, after=after_handler, title="Test API")
 app = Flask(__name__)
+
+blueprint = Blueprint("blueprint-test", __name__, url_prefix="/blueprint")
+blueprint_api = api.for_blueprint(blueprint)
+
+
+@blueprint.get("/test")
+@blueprint_api.validate(headers=Headers, tags=["test", "health"], resp=Response(HTTP_200=Resp))
+def ping():
+    """summary
+    description"""
+    return jsonify(name="Test", score=[10])
 
 
 @app.route("/ping")
@@ -176,6 +187,7 @@ def _upload_file():
     return jsonify(uid=1, limit=2, name=body.file_name)
 
 
+app.register_blueprint(blueprint)
 api.register(app)
 
 

@@ -1,5 +1,5 @@
 from .common import get_paths
-from .test_plugin_flask import api as flask_api
+from tests.test_plugin_flask import api as flask_api
 
 
 def test_plugin_spec():

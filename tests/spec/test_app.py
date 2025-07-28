@@ -481,3 +481,13 @@ def test_stacked(spec: Mapping[str, Any]):
 
     assert v1["get"]["operationId"] == "getV1Stacked"
     assert v2["get"]["operationId"] == "getV2Stacked"
+
+
+def test_paths_sorted(spec: Mapping[str, Any]):
+    assert list(spec["paths"].keys()) == sorted(spec["paths"].keys())
+
+
+def test_schemas_sorted(spec: Mapping[str, Any]):
+    assert list(spec["components"]["schemas"].keys()) == sorted(
+        spec["components"]["schemas"].keys()
+    )

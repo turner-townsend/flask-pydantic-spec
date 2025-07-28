@@ -2,6 +2,7 @@ from collections import defaultdict
 from copy import deepcopy
 from functools import wraps
 from typing import Mapping, Optional, Type, Union, Callable, Iterable, Any, Dict
+from operator import itemgetter
 
 from flask import Flask, Response as FlaskResponse, Blueprint, jsonify
 from flask.blueprints import BlueprintSetupState
@@ -284,8 +285,10 @@ class FlaskPydanticSpec:
                 },
             },
             "tags": sorted(tags.values(), key=lambda t: t["name"]),
-            "paths": {**routes},
-            "components": {"schemas": {**self._get_model_definitions()}},
+            "paths": dict(sorted(routes.items(), key=itemgetter(0))),
+            "components": {
+                "schemas": dict(sorted(self._get_model_definitions().items(), key=itemgetter(0)))
+            },
         }
         return spec
 

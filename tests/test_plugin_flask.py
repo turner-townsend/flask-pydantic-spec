@@ -91,7 +91,7 @@ def _ping():
     resp=Response(HTTP_200=Users, HTTP_401=None),
 )
 def get_users():
-    return _get_users()
+    return jsonify(_get_users(request.context.query))
 
 
 @app.route("/v1/api/user", methods=["GET"])
@@ -100,20 +100,17 @@ def get_users():
     resp=Response(HTTP_200=UsersV1, HTTP_401=None),
 )
 def get_users_v1():
-    return _get_users()
+    return jsonify(_get_users(request.context.query))
 
 
-def _get_users():
+def _get_users(query_params: QueryParams) -> dict[str, list[dict[str, str]]]:
     allowed_names = ["james", "annabel", "bethany"]
-    query_params = request.context.query
-    return jsonify(
-        {
-            "data": [
-                {"name": name}
-                for name in sorted(set(allowed_names).intersection(set(query_params.name)))
-            ]
-        }
-    )
+    return {
+        "data": [
+            {"name": name}
+            for name in sorted(set(allowed_names).intersection(set(query_params.name)))
+        ]
+    }
 
 
 @app.route("/api/user/<name>", methods=["POST"])

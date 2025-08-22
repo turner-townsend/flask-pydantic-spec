@@ -6,6 +6,7 @@ from pydantic import v1
 
 
 BaseModelUnion = Union[BaseModel, v1.BaseModel]
+BASE_MODEL_TYPES = (BaseModel, v1.BaseModel)
 BaseModelT = TypeVar("BaseModelT", bound=BaseModelUnion)
 
 

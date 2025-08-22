@@ -32,7 +32,7 @@ from werkzeug.datastructures import Headers
 from werkzeug.routing import Rule, parse_converter_args
 
 from .config import Config, OperationIdType
-from .types import BaseModelUnion, ResponseBase, RequestBase
+from .types import BASE_MODEL_TYPES, BaseModelUnion, ResponseBase, RequestBase
 from .utils import load_model_schema, parse_multi_dict, parse_rule
 
 
@@ -226,16 +226,35 @@ class FlaskBackend:
         if req_validation_error:
             abort(response)  # type: ignore
 
-        response = make_response(func(*args, **kwargs))
-
+        data = func(*args, **kwargs)
+        response = data
+        status_code = 200
+        if isinstance(response, FlaskResponse):
+            data = response.get_json()
+            status_code = response.status_code
+        elif isinstance(response, tuple):
+            data, status_code = response
+            response = make_response(response)
+        model = None
         if resp and resp.has_model() and getattr(resp, "validate"):
-            model = resp.find_model(response.status_code)
+            model = resp.find_model(status_code)
             if model:
                 try:
-                    load_model_schema(model, response.get_json())
+                    data = load_model_schema(model, data)
                 except (ValidationError, v1.ValidationError) as err:
                     resp_validation_error = err
+                    self.logger.debug(f"Failed to validate response: {err}", exc_info=err)
                     response = make_response(jsonify({"message": "response validation error"}), 500)
+
+        if not isinstance(response, FlaskResponse):
+            is_model = isinstance(data, BASE_MODEL_TYPES)
+            return_json = model or is_model
+            response = (
+                jsonify(data.model_dump(mode="json") if is_model else data)
+                if return_json
+                else make_response(data)
+            )
+            response.status_code = status_code
 
         after(request, response, resp_validation_error, None)
 

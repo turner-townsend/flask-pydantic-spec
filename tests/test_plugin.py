@@ -10,6 +10,7 @@ def test_plugin_spec():
         "/api/file",
         "/api/group/{name}",
         "/api/user",
+        "/api/user/return_types",
         "/api/user/{name}",
         "/ping",
         "/v1/api/file",

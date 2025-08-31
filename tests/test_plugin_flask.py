@@ -4,12 +4,13 @@ from io import BytesIO
 import logging
 from random import randint
 import gzip
-from typing import Union
+from typing import Literal, Union
 from unittest.mock import ANY
 
 import pytest
 import json
-from flask import Flask, jsonify, request, Blueprint
+from flask import abort, Flask, jsonify, request, Blueprint
+from pydantic import BaseModel
 from werkzeug.datastructures import FileStorage
 from werkzeug.test import Client
 
@@ -91,7 +92,7 @@ def _ping():
     resp=Response(HTTP_200=Users, HTTP_401=None),
 )
 def get_users():
-    return _get_users()
+    return jsonify(_get_users(request.context.query))
 
 
 @app.route("/v1/api/user", methods=["GET"])
@@ -100,20 +101,17 @@ def get_users():
     resp=Response(HTTP_200=UsersV1, HTTP_401=None),
 )
 def get_users_v1():
-    return _get_users()
+    return jsonify(_get_users(request.context.query))
 
 
-def _get_users():
+def _get_users(query_params: QueryParams) -> dict[str, list[dict[str, str]]]:
     allowed_names = ["james", "annabel", "bethany"]
-    query_params = request.context.query
-    return jsonify(
-        {
-            "data": [
-                {"name": name}
-                for name in sorted(set(allowed_names).intersection(set(query_params.name)))
-            ]
-        }
-    )
+    return {
+        "data": [
+            {"name": name}
+            for name in sorted(set(allowed_names).intersection(set(query_params.name)))
+        ]
+    }
 
 
 @app.route("/api/user/<name>", methods=["POST"])
@@ -177,6 +175,54 @@ def upload_file():
 @api.validate(body=MultipartFormRequest(model=FileNameV1), resp=Response(HTTP_200=DemoModelV1))
 def upload_file_v1():
     return _upload_file()
+
+
+class ReturnTypeQuery(QueryParams):
+    return_type: Literal["model", "json", "jsonify", "tuple", "string"]
+
+
+@app.route("/api/user/return_types", methods=["GET"])
+@api.validate(query=ReturnTypeQuery, resp=Response(HTTP_200=Users))
+def get_users_return_type():
+    data = _get_users(request.context.query)
+    mode = request.context.query.return_type
+
+    def ret():
+        if mode == "json":
+            return data
+        if mode == "jsonify":
+            return jsonify(data)
+        if mode == "tuple":
+            return data, 200
+        if mode == "model":
+            return Users.model_validate(data)
+        if mode == "string":
+            return Users.model_validate(data).mode_dump_json()
+        abort(400, f"Unknown return type {mode!r}")
+
+    data = ret()
+    print(f"{data=}")
+    return data
+
+
+@pytest.mark.parametrize(
+    "return_type, expect_failure",
+    [
+        ("model", False),
+        ("json", False),
+        ("jsonify", False),
+        ("tuple", False),
+        ("string", True),
+    ],
+)
+def test_return_type(client: Client, return_type: str, expect_failure: bool) -> None:
+    resp = client.get(
+        f"/api/user/return_types?name=james&name=foononexistant&return_type={return_type}"
+    )
+    print(resp.data)
+    assert (resp.status_code != 200) == expect_failure
+    if not expect_failure:
+        assert resp.json == _get_users(QueryParams(name=["james"]))
 
 
 def _upload_file():

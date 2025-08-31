@@ -1,7 +1,7 @@
 import re
 from typing import Optional, Type, Iterable, Mapping, Any, Dict, NamedTuple, TypeVar, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, RootModel
 from pydantic import v1
 
 
@@ -32,6 +32,10 @@ class ResponseBase:
 class ResponseModel(NamedTuple):
     model: Type[BaseModelUnion]
     is_list: bool = False
+
+
+class HtmlResponse(RootModel):
+    root: str
 
 
 class Response(ResponseBase):

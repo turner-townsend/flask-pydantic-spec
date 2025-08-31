@@ -32,7 +32,7 @@ from werkzeug.datastructures import Headers
 from werkzeug.routing import Rule, parse_converter_args
 
 from .config import Config, OperationIdType
-from .types import BASE_MODEL_TYPES, BaseModelUnion, ResponseBase, RequestBase
+from .types import BASE_MODEL_TYPES, BaseModelUnion, HtmlResponse, ResponseBase, RequestBase
 from .utils import load_model_schema, parse_multi_dict, parse_rule
 
 
@@ -248,12 +248,11 @@ class FlaskBackend:
 
         if not isinstance(response, FlaskResponse):
             is_model = isinstance(data, BASE_MODEL_TYPES)
-            return_json = model or is_model
-            response = (
-                jsonify(data.model_dump(mode="json") if is_model else data)
-                if return_json
-                else make_response(data)
-            )
+            return_json = (
+                model and not (isinstance(model, type) and issubclass(model, HtmlResponse))
+            ) or (is_model and not isinstance(data, HtmlResponse))
+            data = data.model_dump(mode="json") if is_model else data
+            response = jsonify(data) if return_json else make_response(data)
             response.status_code = status_code
 
         after(request, response, resp_validation_error, None)

@@ -23,8 +23,8 @@ PAGES = {
         </style>
     </head>
     <body>
-        <redoc spec-url='{0.spec_url}'></redoc>
-        <script src="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"> </script>
+        <redoc spec-url="{0.spec_url}"></redoc>
+        <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"> </script>
     </body>
 </html>""",
     # https://swagger.io

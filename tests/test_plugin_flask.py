@@ -1,38 +1,38 @@
+import gzip
+import json
+import logging
 from collections.abc import Callable
 from datetime import datetime
 from io import BytesIO
-import logging
 from random import randint
-import gzip
 from typing import Union
 from unittest.mock import ANY
 
 import pytest
-import json
-from flask import Flask, jsonify, request, Blueprint
+from flask import Blueprint, Flask, jsonify, request
 from werkzeug.datastructures import FileStorage
 from werkzeug.test import Client
 
-from flask_pydantic_spec.types import Response, MultipartFormRequest
 from flask_pydantic_spec import FlaskPydanticSpec
+from flask_pydantic_spec.types import MultipartFormRequest, Response
 
 from .common import (
+    JSON,
+    Cookies,
     CookiesV1,
+    DemoModel,
     DemoModelV1,
+    FileName,
     FileNameV1,
+    Headers,
     HeadersV1,
     Query,
+    QueryParams,
     QueryParamsV1,
     QueryV1,
     Resp,
-    JSON,
-    Headers,
-    Cookies,
-    DemoModel,
-    QueryParams,
     RespV1,
     Users,
-    FileName,
     UsersV1,
 )
 
@@ -308,7 +308,7 @@ def test_flask_doc(client: Client):
 
     resp = client.get("/apidoc/redoc")
     assert resp.status_code == 200
-    assert b"spec-url='/apidoc/openapi.json'" in resp.data
+    assert b'spec-url="/apidoc/openapi.json"' in resp.data
     assert b"<title>Test API</title>" in resp.data
 
     resp = client.get("/apidoc/swagger")

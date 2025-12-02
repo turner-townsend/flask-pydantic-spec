@@ -228,7 +228,7 @@ class FlaskPydanticSpec:
     def _register_model(
         self, model: Type[BaseModelUnion], source: Literal["response", "request"]
     ) -> None:
-        self.models[get_model_name(model)] = self._get_open_api_schema(
+        self.models[get_model_name(model, source)] = self._get_open_api_schema(
             get_model_schema(model, source)
         )
 

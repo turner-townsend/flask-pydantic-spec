@@ -29,15 +29,23 @@ logger = logging.getLogger(__name__)
 VALID_NAME_REGEX = re.compile(r"[^a-zA-Z0-9._-]")
 
 
-def get_model_name(model: Type[BaseModelUnion]) -> str:
+def get_model_name(model: Type[BaseModelUnion], source: Literal["response", "request"]) -> str:
     """Gets the name of a model name as an OpenAPI 3.1 compatible name
 
-    Replaces any non standard characters in a string with `_`
+    Replaces any non-standard characters in a string with `_`
 
-    >>> format_model_name("AB[C[D]]")
-    AB_C_D__
+    >>> format_model_name("AB[C[D]]", "response")
+    AB_C_D__Response
+    >>> format_model_name("AB[C[D]]", "request")
+    AB_C_D__Request
     """
-    return VALID_NAME_REGEX.sub("_", model.__name__)
+    if source == "request":
+        source_name = "Request"
+    elif source == "response":
+        source_name = "Response"
+    else:
+        raise ValueError(f"{source} is not a valid source")
+    return VALID_NAME_REGEX.sub("_", "".join((model.__name__, source_name)))
 
 
 def get_model_schema(
@@ -115,7 +123,7 @@ def parse_params(
     get spec for (query, headers, cookies)
     """
     if hasattr(func, "query"):
-        model_name = getattr(func, "query").__name__
+        model_name = get_model_name(getattr(func, "query"), "request")
         query = models.get(model_name)
         if query is not None:
             for name, schema in query["properties"].items():
@@ -129,7 +137,7 @@ def parse_params(
                 )
 
     if hasattr(func, "headers"):
-        model_name = getattr(func, "headers").__name__
+        model_name = get_model_name(getattr(func, "headers"), "request")
         headers = models.get(model_name)
         if headers is not None:
             for name, schema in headers["properties"].items():
@@ -143,7 +151,7 @@ def parse_params(
                 )
 
     if hasattr(func, "cookies"):
-        model_name = getattr(func, "cookies").__name__
+        model_name = get_model_name(getattr(func, "cookies"), "request")
         cookies = models.get(model_name)
         if cookies is not None:
             for name, schema in cookies["properties"].items():

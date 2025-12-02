@@ -315,7 +315,10 @@ def test_openapi_deprecated(app: Flask, api: FlaskPydanticSpec):
 def test_flat_array_schemas(app: Flask, api: FlaskPydanticSpec):
     api.register(app)
     spec = api.spec
-    assert spec["components"]["schemas"][get_model_name(ExampleNestedList)].get("items") is not None
+    assert (
+        spec["components"]["schemas"][get_model_name(ExampleNestedList, "response")].get("items")
+        is not None
+    )
 
 
 @pytest.mark.parametrize(
@@ -393,7 +396,7 @@ def test_flat_array_schema_from_python_list_type(app: Flask, api: FlaskPydanticS
 
     assert (
         schema_spec["type"] == "array"
-        and schema_spec["items"]["$ref"] == "#/components/schemas/ExampleModel"
+        and schema_spec["items"]["$ref"] == "#/components/schemas/ExampleModelResponse"
     )
 
 
@@ -460,7 +463,9 @@ def test_v1_route_request_bodies(spec: Mapping[str, Any]):
     v1_spec = spec["paths"]["/v1/lone"]["post"]
 
     assert v1_spec["requestBody"] == {
-        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ExampleV1Model"}}}
+        "content": {
+            "application/json": {"schema": {"$ref": "#/components/schemas/ExampleV1ModelRequest"}}
+        }
     }
 
 

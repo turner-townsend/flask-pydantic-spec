@@ -18,7 +18,6 @@ def test_plugin_spec():
         "/v1/api/user/{name}",
         "/v1/ping",
     ]
-
     ping = api.spec["paths"]["/ping"]["get"]
     assert ping["tags"] == ["test", "health"]
     assert ping["parameters"][0]["in"] == "header"
@@ -29,7 +28,7 @@ def test_plugin_spec():
     assert user["tags"] == ["api", "test"]
     assert (
         user["requestBody"]["content"]["application/json"]["schema"]["$ref"]
-        == "#/components/schemas/JSON"
+        == "#/components/schemas/JSONRequest"
     )
     assert len(user["responses"]) == 3
 

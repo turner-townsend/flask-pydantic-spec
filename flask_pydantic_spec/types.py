@@ -216,7 +216,7 @@ class MultipartFormRequest(RequestBase):
         from .utils import get_model_schema
 
         if self.model:
-            additional_properties = get_model_schema(self.model)["properties"]
+            additional_properties = get_model_schema(self.model, "request")["properties"]
         else:
             additional_properties = {}
 

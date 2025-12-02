@@ -14,6 +14,7 @@ from typing import (
     Dict,
     Iterable,
     Type,
+    Literal,
 )
 
 from werkzeug.datastructures import MultiDict
@@ -39,9 +40,20 @@ def get_model_name(model: Type[BaseModelUnion]) -> str:
     return VALID_NAME_REGEX.sub("_", model.__name__)
 
 
-def get_model_schema(model: Type[BaseModelUnion]) -> Dict[str, Any]:
+def get_model_schema(
+    model: Type[BaseModelUnion], source: Literal["response", "request"]
+) -> Dict[str, Any]:
     if issubclass(model, BaseModel):
-        return model.model_json_schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
+        if source == "request":
+            return model.model_json_schema(ref_template=OPENAPI_SCHEMA_TEMPLATE, mode="validation")
+        elif source == "response":
+            return model.model_json_schema(
+                ref_template=OPENAPI_SCHEMA_TEMPLATE, mode="serialization"
+            )
+        else:
+            raise ValueError(
+                f"Unexpected source '{source}' for OpenAPI schema. Must be 'request' or 'response'."
+            )
     elif issubclass(model, v1.BaseModel):
         schema = model.schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
         if "definitions" in schema:

@@ -412,6 +412,23 @@ def strip_v1(data: Any) -> Any:
         return data
 
 
+def normalise_v2(data: Any) -> Any:
+    """Strip out the Pydantic V2 model schema identifies
+
+    To allow us to compare between the generated schema for a Pydantic V1 model and Pydantic V2 model,
+    we remove the suffix that indicates whether the model was attached to the Request or the Response
+    on the API.
+    """
+    if isinstance(data, dict):
+        return {k: normalise_v2(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [normalise_v2(item) for item in data]
+    elif isinstance(data, str) and data.startswith("#"):
+        return data.replace("Request", "").replace("Response", "")
+    else:
+        return data
+
+
 @pytest.mark.parametrize(
     ("route", "method"),
     [
@@ -430,7 +447,7 @@ def test_v1_routes_match_v2(app: Flask, api: FlaskPydanticSpec, route: str, meth
     v1_spec = spec["paths"][v1_route][method]
     v2_spec = spec["paths"][route][method]
 
-    assert strip_v1(v1_spec) == v2_spec
+    assert strip_v1(v1_spec) == normalise_v2(v2_spec)
 
 
 @pytest.mark.parametrize(
@@ -450,7 +467,7 @@ def test_v1_routes_with_nullable_match(app: Flask, api: FlaskPydanticSpec, route
     v1_query_type = v1_spec["parameters"][1].pop("schema")
     v2_query_type = v2_spec["parameters"][1].pop("schema")
 
-    assert strip_v1(v1_spec) == v2_spec
+    assert strip_v1(v1_spec) == normalise_v2(v2_spec)
     # Pydantic v1 was incorrectly implemented
     assert v1_query_type == {"$ref": "#/components/schemas/TypeEnum"}
     assert v2_query_type == {
@@ -463,9 +480,7 @@ def test_v1_route_request_bodies(spec: Mapping[str, Any]):
     v1_spec = spec["paths"]["/v1/lone"]["post"]
 
     assert v1_spec["requestBody"] == {
-        "content": {
-            "application/json": {"schema": {"$ref": "#/components/schemas/ExampleV1ModelRequest"}}
-        }
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ExampleV1Model"}}}
     }
 
 

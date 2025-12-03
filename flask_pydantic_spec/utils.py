@@ -33,11 +33,6 @@ def get_model_name(model: Type[BaseModelUnion], source: Literal["response", "req
     """Gets the name of a model name as an OpenAPI 3.1 compatible name
 
     Replaces any non-standard characters in a string with `_`
-
-    >>> format_model_name("AB[C[D]]", "response")
-    AB_C_D__Response
-    >>> format_model_name("AB[C[D]]", "request")
-    AB_C_D__Request
     """
     if source == "request":
         source_name = "Request"
@@ -45,7 +40,10 @@ def get_model_name(model: Type[BaseModelUnion], source: Literal["response", "req
         source_name = "Response"
     else:
         raise ValueError(f"{source} is not a valid source")
-    return VALID_NAME_REGEX.sub("_", "".join((model.__name__, source_name)))
+    if issubclass(model, v1.BaseModel):
+        return VALID_NAME_REGEX.sub("_", model.__name__)
+    else:
+        return VALID_NAME_REGEX.sub("_", "".join((model.__name__, source_name)))
 
 
 def get_model_schema(

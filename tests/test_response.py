@@ -53,9 +53,16 @@ def test_response_spec(model_cls):
     spec = resp.generate_spec()
     assert spec["200"]["description"] == DEFAULT_CODE_DESC["HTTP_200"]
     assert spec["201"]["description"] == DEFAULT_CODE_DESC["HTTP_201"]
-    assert spec["201"]["content"]["application/json"]["schema"]["$ref"].split("/")[-1] == "".join(
-        (model_cls.__name__, "Response")
-    )
+    if model_cls is DemoModelV1:
+        assert (
+            spec["201"]["content"]["application/json"]["schema"]["$ref"].split("/")[-1]
+            == model_cls.__name__
+        )
+    else:
+        assert (
+            spec["201"]["content"]["application/json"]["schema"]["$ref"].split("/")[-1]
+            == f"{model_cls.__name__}Response"
+        )
 
     assert spec.get(200) is None
     assert spec.get(404) is None

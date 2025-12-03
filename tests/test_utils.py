@@ -69,7 +69,9 @@ def test_parse_resp():
     assert parse_resp(demo_class.demo_method, 422) == {
         "200": {
             "description": "OK",
-            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DemoModel"}}},
+            "content": {
+                "application/json": {"schema": {"$ref": "#/components/schemas/DemoModelResponse"}}
+            },
         },
         "422": {"description": "Validation Error"},
     }
@@ -77,7 +79,7 @@ def test_parse_resp():
     assert resp_spec["422"]["description"] == "Validation Error"
     assert (
         resp_spec["200"]["content"]["application/json"]["schema"]["$ref"]
-        == "#/components/schemas/DemoModel"
+        == "#/components/schemas/DemoModelResponse"
     )
 
     resp_spec = parse_resp(demo_func, 400)
@@ -88,13 +90,13 @@ def test_parse_resp():
 def test_parse_request():
     assert (
         parse_request(demo_func)["content"]["application/json"]["schema"]["$ref"]
-        == "#/components/schemas/DemoModel"
+        == "#/components/schemas/DemoModelRequest"
     )
     assert parse_request(demo_class.demo_method) == {}
 
 
 def test_parse_params():
-    models = {"DemoModel": DemoModel.model_json_schema()}
+    models = {"DemoModelRequest": DemoModel.model_json_schema()}
     assert parse_params(demo_func, [], models) == []
     params = parse_params(demo_class.demo_method, [], models)
     assert len(params) == 3

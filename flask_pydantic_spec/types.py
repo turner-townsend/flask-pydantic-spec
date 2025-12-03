@@ -123,7 +123,7 @@ class Response(ResponseBase):
     def get_schema(model: Type[BaseModelUnion], is_list: bool = False) -> Mapping[str, Any]:
         from flask_pydantic_spec.utils import get_model_name
 
-        ref_schema = {"$ref": f"#/components/schemas/{get_model_name(model)}"}
+        ref_schema = {"$ref": f"#/components/schemas/{get_model_name(model,'response')}"}
         if is_list:
             return {"schema": {"type": "array", "items": ref_schema}}
         return {"schema": ref_schema}
@@ -191,7 +191,9 @@ class Request(RequestBase):
             return {
                 "content": {
                     self.content_type: {
-                        "schema": {"$ref": f"#/components/schemas/{get_model_name(self.model)}"}
+                        "schema": {
+                            "$ref": f"#/components/schemas/{get_model_name(self.model, 'request')}"
+                        }
                     }
                 }
             }
@@ -216,7 +218,7 @@ class MultipartFormRequest(RequestBase):
         from .utils import get_model_schema
 
         if self.model:
-            additional_properties = get_model_schema(self.model)["properties"]
+            additional_properties = get_model_schema(self.model, "request")["properties"]
         else:
             additional_properties = {}
 

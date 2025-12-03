@@ -1,7 +1,7 @@
 from collections import defaultdict
 from copy import deepcopy
 from functools import wraps
-from typing import Mapping, Optional, Type, Union, Callable, Iterable, Any, Dict
+from typing import Mapping, Optional, Type, Union, Callable, Iterable, Any, Dict, Literal
 from operator import itemgetter
 
 from flask import Flask, Response as FlaskResponse, Blueprint, jsonify
@@ -196,14 +196,14 @@ class FlaskPydanticSpec:
                     else:
                         _model = model
                     if _model is not None and not isinstance(_model, RequestBase):
-                        self._register_model(_model)
+                        self._register_model(_model, "request")
                     setattr(validation, name, model)
 
             if resp is None:
                 raise RuntimeError("must provide at least one response body")
 
             for model in resp.models:
-                self._register_model(model)
+                self._register_model(model, "response")
 
             setattr(validation, "resp", resp)
 
@@ -225,8 +225,12 @@ class FlaskPydanticSpec:
 
         return decorate_validation
 
-    def _register_model(self, model: Type[BaseModelUnion]) -> None:
-        self.models[get_model_name(model)] = self._get_open_api_schema(get_model_schema(model))
+    def _register_model(
+        self, model: Type[BaseModelUnion], source: Literal["response", "request"]
+    ) -> None:
+        self.models[get_model_name(model, source)] = self._get_open_api_schema(
+            get_model_schema(model, source)
+        )
 
     def _generate_spec(self) -> Mapping[str, Any]:
         """

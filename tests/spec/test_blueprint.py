@@ -208,9 +208,9 @@ def test_openapi_deprecated(registered_blueprint_spec: dict[str, Any]) -> None:
 
 def test_flat_array_schemas(registered_blueprint_spec: dict[str, Any]) -> None:
     assert (
-        registered_blueprint_spec["components"]["schemas"][get_model_name(ExampleNestedList)].get(
-            "items"
-        )
+        registered_blueprint_spec["components"]["schemas"][
+            get_model_name(ExampleNestedList, "response")
+        ].get("items")
         is not None
     )
 
@@ -300,5 +300,5 @@ def test_flat_array_schema_from_python_list_type(registered_blueprint_spec: dict
 
     assert (
         schema_spec["type"] == "array"
-        and schema_spec["items"]["$ref"] == "#/components/schemas/ExampleModel"
+        and schema_spec["items"]["$ref"] == "#/components/schemas/ExampleModelResponse"
     )

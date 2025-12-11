@@ -12,7 +12,6 @@ from flask_pydantic_spec.types import Response, Request, _parse_code
 
 from .common import DemoModel
 
-
 api = FlaskPydanticSpec()
 
 

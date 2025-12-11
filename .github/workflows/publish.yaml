@@ -18,14 +18,10 @@ jobs:
       # retrieve your distributions here
       - uses: actions/checkout@master
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: '3.13'
-
-      - name: Install dependencies
-        run: |
-          pip install setuptools wheel twine
+          python-version: "3.13"
 
       - name: Clean and build
         run: |
@@ -46,14 +42,10 @@ jobs:
       # retrieve your distributions here
       - uses: actions/checkout@master
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.13'
-
-      - name: Install dependencies
-        run: |
-          pip install setuptools wheel twine
+          python-version: "3.13"
 
       - name: Clean and build
         run: |

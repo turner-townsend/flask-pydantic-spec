@@ -1,13 +1,12 @@
 from enum import Enum
 import re
-from typing import Any, Callable, Dict, Mapping, Optional, List
+from typing import Any, Dict, Mapping, Optional, List
 
 import pytest
 from flask import Flask
 from openapi_spec_validator import OpenAPIV31SpecValidator
 from pydantic import BaseModel, StrictFloat, Field, RootModel
 from pydantic import v1
-from werkzeug.routing import Rule
 
 from flask_pydantic_spec import Response
 from flask_pydantic_spec.flask_backend import FlaskBackend

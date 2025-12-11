@@ -59,7 +59,7 @@ blueprint_api = api.for_blueprint(blueprint)
 
 @blueprint.get("/test")
 @blueprint_api.validate(headers=Headers, tags=["test", "health"], resp=Response(HTTP_200=Resp))
-def ping():
+def blueprint_test():
     """summary
     description"""
     return jsonify(name="Test", score=[10])

@@ -1,6 +1,5 @@
 from datetime import date
-from enum import IntEnum, Enum
-from typing import List, Optional
+from enum import Enum, IntEnum
 
 from pydantic import BaseModel, model_validator, v1
 from werkzeug.routing import BaseConverter
@@ -12,11 +11,11 @@ class Order(IntEnum):
 
 
 class Query(BaseModel):
-    order: Optional[Order] = None
+    order: Order | None = None
 
 
 class QueryParams(BaseModel):
-    name: Optional[List[str]] = None
+    name: list[str] | None = None
 
 
 class User(BaseModel):
@@ -24,7 +23,7 @@ class User(BaseModel):
 
 
 class Users(BaseModel):
-    data: List[User]
+    data: list[User]
 
 
 class JSON(BaseModel):
@@ -34,7 +33,7 @@ class JSON(BaseModel):
 
 class Resp(BaseModel):
     name: str
-    score: List[int]
+    score: list[int]
 
 
 class Language(str, Enum):
@@ -92,11 +91,11 @@ class UnknownConverter(BaseConverter):
 
 
 class QueryV1(v1.BaseModel):
-    order: Optional[Order] = None
+    order: Order | None = None
 
 
 class QueryParamsV1(v1.BaseModel):
-    name: Optional[List[str]] = None
+    name: list[str] | None = None
 
 
 class UserV1(v1.BaseModel):
@@ -104,7 +103,7 @@ class UserV1(v1.BaseModel):
 
 
 class UsersV1(v1.BaseModel):
-    data: List[UserV1]
+    data: list[UserV1]
 
 
 class JSONV1(v1.BaseModel):
@@ -114,7 +113,7 @@ class JSONV1(v1.BaseModel):
 
 class RespV1(v1.BaseModel):
     name: str
-    score: List[int]
+    score: list[int]
 
 
 class HeadersV1(v1.BaseModel):

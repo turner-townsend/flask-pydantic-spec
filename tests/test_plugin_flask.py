@@ -5,7 +5,6 @@ from collections.abc import Callable
 from datetime import datetime
 from io import BytesIO
 from random import randint
-from typing import Union
 from unittest.mock import ANY
 
 import pytest
@@ -264,7 +263,7 @@ def test_flask_validate(client: Client, version: str):
         lambda: json.dumps({"type": "foo", "created_at": str(datetime.now().date())}),
     ],
 )
-def test_sending_file(client: Client, data: Callable[[], Union[FileStorage, str]], version: str):
+def test_sending_file(client: Client, data: Callable[[], FileStorage | str], version: str):
     file = FileStorage(BytesIO(b"abcde"), filename="test.jpg", name="test.jpg")
     resp = client.post(
         f"{version}/api/file",

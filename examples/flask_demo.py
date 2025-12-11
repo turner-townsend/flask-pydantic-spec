@@ -1,10 +1,10 @@
-from flask import Flask, request, jsonify, abort
-from pydantic import BaseModel, Field
-from random import random
 from enum import Enum
+from random import random
+
+from flask import Flask, abort, jsonify, request
+from pydantic import BaseModel, Field
 
 from flask_pydantic_spec import FlaskPydanticSpec, Response
-
 
 app = Flask(__name__)
 api = FlaskPydanticSpec("flask")

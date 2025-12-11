@@ -1,20 +1,18 @@
-from enum import Enum
 import re
-from typing import Any, Dict, Mapping, Optional, List
+from collections.abc import Mapping
+from enum import Enum
+from typing import Any
 
 import pytest
 from flask import Flask
 from openapi_spec_validator import OpenAPIV31SpecValidator
-from pydantic import BaseModel, StrictFloat, Field, RootModel
-from pydantic import v1
+from pydantic import BaseModel, Field, RootModel, StrictFloat, v1
 
-from flask_pydantic_spec import Response
-from flask_pydantic_spec.flask_backend import FlaskBackend
-from flask_pydantic_spec.types import FileResponse, Request, MultipartFormRequest
-from flask_pydantic_spec import FlaskPydanticSpec
+from flask_pydantic_spec import FlaskPydanticSpec, Response
 from flask_pydantic_spec.config import Config, OperationIdType
+from flask_pydantic_spec.flask_backend import FlaskBackend
+from flask_pydantic_spec.types import FileResponse, MultipartFormRequest, Request
 from flask_pydantic_spec.utils import get_model_name
-
 from tests.common import ExampleConverter, UnknownConverter
 
 
@@ -31,11 +29,11 @@ class TypeEnum(str, Enum):
 
 class ExampleQuery(BaseModel):
     query: str
-    type: Optional[TypeEnum] = None
+    type: TypeEnum | None = None
 
 
 class ExampleNestedList(RootModel):
-    root: List[ExampleModel]
+    root: list[ExampleModel]
 
 
 class ExampleNestedModel(BaseModel):
@@ -43,7 +41,7 @@ class ExampleNestedModel(BaseModel):
 
 
 class ExampleDeepNestedModel(BaseModel):
-    data: List["ExampleModel"]
+    data: list["ExampleModel"]
 
 
 class ExampleV1Model(v1.BaseModel):
@@ -54,11 +52,11 @@ class ExampleV1Model(v1.BaseModel):
 
 class ExampleV1Query(v1.BaseModel):
     query: str
-    type: Optional[TypeEnum] = None
+    type: TypeEnum | None = None
 
 
 class ExampleV1NestedList(v1.BaseModel):
-    __root__: List[ExampleV1Model]
+    __root__: list[ExampleV1Model]
 
 
 class ExampleV1NestedModel(v1.BaseModel):
@@ -66,7 +64,7 @@ class ExampleV1NestedModel(v1.BaseModel):
 
 
 class ExampleV1DeepNestedModel(v1.BaseModel):
-    data: List["ExampleV1Model"]
+    data: list["ExampleV1Model"]
 
 
 def backend_app():
@@ -86,7 +84,7 @@ def name():
 
 
 @pytest.fixture
-def api(name) -> FlaskPydanticSpec:
+def api(name: str) -> FlaskPydanticSpec:
     return FlaskPydanticSpec(
         name,
         tags=[{"name": "lone", "description": "a lone api"}],
@@ -104,12 +102,12 @@ def test_spectree_init():
     assert spec.config.PATH == "docs"
 
 
-def test_register(name, empty_app):
+def test_register(name: str, empty_app: Flask):
     api = FlaskPydanticSpec(name)
     api.register(empty_app)
 
 
-def test_spec_generate(name, empty_app):
+def test_spec_generate(name: str, empty_app: Flask):
     api = FlaskPydanticSpec(
         name,
         app=empty_app,
@@ -149,7 +147,7 @@ def app(api: FlaskPydanticSpec) -> Flask:
     @app.patch("/lone")
     @api.validate(
         body=Request(ExampleModel),
-        resp=Response(HTTP_200=List[ExampleModel], HTTP_400=ExampleNestedModel),
+        resp=Response(HTTP_200=list[ExampleModel], HTTP_400=ExampleNestedModel),
         tags=["lone"],
     )
     def lone_patch():
@@ -158,7 +156,7 @@ def app(api: FlaskPydanticSpec) -> Flask:
     @app.get("/query")
     @api.validate(
         query=ExampleQuery,
-        resp=Response(HTTP_200=List[ExampleModel]),
+        resp=Response(HTTP_200=list[ExampleModel]),
         tags=["alpha"],
     )
     def get_query():
@@ -205,7 +203,7 @@ def app(api: FlaskPydanticSpec) -> Flask:
     @app.patch("/v1/lone")
     @api.validate(
         body=Request(ExampleV1Model),
-        resp=Response(HTTP_200=List[ExampleV1Model], HTTP_400=ExampleV1NestedModel),
+        resp=Response(HTTP_200=list[ExampleV1Model], HTTP_400=ExampleV1NestedModel),
         tags=["lone"],
     )
     def lone_patch_v1():
@@ -213,7 +211,7 @@ def app(api: FlaskPydanticSpec) -> Flask:
 
     @app.get("/v1/query")
     @api.validate(
-        query=ExampleV1Query, resp=Response(HTTP_200=List[ExampleV1Model]), tags=["alpha"]
+        query=ExampleV1Query, resp=Response(HTTP_200=list[ExampleV1Model]), tags=["alpha"]
     )
     def get_query_v1():
         pass
@@ -293,7 +291,7 @@ def test_openapi_extensions(app: Flask, api: FlaskPydanticSpec):
         "key doesn't start with x",
     ],
 )
-def test_openapi_extensions__fails(extensions: Dict, app: Flask, api: FlaskPydanticSpec):
+def test_openapi_extensions__fails(extensions: dict, app: Flask, api: FlaskPydanticSpec):
     with pytest.raises(ValueError) as exc_info:
 
         @api.validate(resp=Response(HTTP_200=None), extensions=extensions)

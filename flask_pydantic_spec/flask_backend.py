@@ -1,47 +1,45 @@
-from enum import Enum
 import gzip
 import json
 import logging
-
+from collections.abc import Callable, Iterable, Iterator, Mapping
+from dataclasses import dataclass
+from enum import Enum
 from typing import (
-    Iterator,
-    Optional,
-    Mapping,
-    Callable,
+    TYPE_CHECKING,
     Any,
-    Tuple,
-    List,
-    Iterable,
-    Dict,
-    Type,
     cast,
 )
-from dataclasses import dataclass
 
-from pydantic import ValidationError, v1
 from flask import (
-    request,
-    abort,
-    make_response,
-    jsonify,
-    Request as FlaskRequest,
     Flask,
+    abort,
+    jsonify,
+    make_response,
+    request,
+)
+from flask import (
+    Request as FlaskRequest,
+)
+from flask import (
     Response as FlaskResponse,
 )
-from werkzeug.datastructures import Headers
+from pydantic import ValidationError, v1
 from werkzeug.routing import Rule, parse_converter_args
 
 from .config import Config, OperationIdType
-from .types import BaseModelUnion, ResponseBase, RequestBase
+from .types import BaseModelUnion, RequestBase, ResponseBase
 from .utils import load_model_schema, parse_multi_dict, parse_rule
+
+if TYPE_CHECKING:
+    from werkzeug.datastructures import Headers
 
 
 @dataclass
 class Context:
-    query: Optional[BaseModelUnion]
-    body: Optional[BaseModelUnion]
-    headers: Optional[BaseModelUnion]
-    cookies: Optional[BaseModelUnion]
+    query: BaseModelUnion | None
+    body: BaseModelUnion | None
+    headers: BaseModelUnion | None
+    cookies: BaseModelUnion | None
 
 
 class FlaskBackend:
@@ -66,7 +64,7 @@ class FlaskBackend:
             return True
         return False
 
-    def parse_func(self, app: Flask, route: Rule) -> Iterator[Tuple[str, Callable]]:
+    def parse_func(self, app: Flask, route: Rule) -> Iterator[tuple[str, Callable]]:
         func = app.view_functions[route.endpoint]
         if route.methods:
             for method in route.methods:
@@ -74,15 +72,15 @@ class FlaskBackend:
 
     def get_operation_id(self, route: Rule, method: str, func: Callable) -> str:
         if self.config.OPERATION_ID_TYPE == OperationIdType.endpoint_name_short:
-            return cast(str, route.endpoint).split(".")[-1]
+            return cast("str", route.endpoint).split(".")[-1]
         elif self.config.OPERATION_ID_TYPE == OperationIdType.endpoint_name_full:
-            return cast(str, route.endpoint)
+            return cast("str", route.endpoint)
 
         return func.__name__
 
-    def parse_path(self, route: Rule) -> Tuple[str, List[Mapping[str, Any]]]:
+    def parse_path(self, route: Rule) -> tuple[str, list[dict[str, Any]]]:
         subs = []
-        parameters: List[Mapping[str, Any]] = []
+        parameters: list[dict[str, Any]] = []
 
         for converter, arguments, variable in parse_rule(route):
             if converter is None:
@@ -91,7 +89,7 @@ class FlaskBackend:
             subs.append(f"{{{variable}}}")
 
             args: Iterable[Any] = []
-            kwargs: Dict[str, Any] = {}
+            kwargs: dict[str, Any] = {}
 
             if arguments:
                 args, kwargs = parse_converter_args(arguments)
@@ -156,10 +154,10 @@ class FlaskBackend:
     def request_validation(
         self,
         request: FlaskRequest,
-        query: Optional[Type[BaseModelUnion]],
-        body: Optional[RequestBase],
-        headers: Optional[Type[BaseModelUnion]],
-        cookies: Optional[Type[BaseModelUnion]],
+        query: type[BaseModelUnion] | None,
+        body: RequestBase | None,
+        headers: type[BaseModelUnion] | None,
+        cookies: type[BaseModelUnion] | None,
     ) -> None:
         raw_query = request.args or None
         if raw_query is not None:
@@ -185,32 +183,25 @@ class FlaskBackend:
 
         req_headers: Headers = request.headers
         req_cookies: Mapping[str, str] = request.cookies
-        setattr(
-            request,
-            "context",
-            Context(
-                query=load_model_schema(query, req_query) if query is not None else None,
-                body=(
-                    load_model_schema(getattr(body, "model"), parsed_body)
-                    if body and getattr(body, "model")
-                    else None
-                ),
-                headers=load_model_schema(headers, dict(req_headers)) if headers else None,
-                cookies=load_model_schema(cookies, dict(req_cookies)) if cookies else None,
-            ),
+        body_model = getattr(body, "model", None) if body else None
+        request.context = Context(  # type: ignore[attr-defined]
+            query=load_model_schema(query, req_query) if query is not None else None,
+            body=load_model_schema(body_model, parsed_body) if body_model else None,
+            headers=load_model_schema(headers, dict(req_headers)) if headers else None,
+            cookies=load_model_schema(cookies, dict(req_cookies)) if cookies else None,
         )
 
     def validate(
         self,
         func: Callable,
-        query: Optional[Type[BaseModelUnion]],
-        body: Optional[RequestBase],
-        headers: Optional[Type[BaseModelUnion]],
-        cookies: Optional[Type[BaseModelUnion]],
-        resp: Optional[ResponseBase],
+        query: type[BaseModelUnion] | None,
+        body: RequestBase | None,
+        headers: type[BaseModelUnion] | None,
+        cookies: type[BaseModelUnion] | None,
+        resp: ResponseBase | None,
         before: Callable,
         after: Callable,
-        *args: List[Any],
+        *args: list[Any],
         **kwargs: Mapping[str, Any],
     ) -> FlaskResponse:
         response, req_validation_error, resp_validation_error = None, None, None
@@ -228,7 +219,7 @@ class FlaskBackend:
 
         response = make_response(func(*args, **kwargs))
 
-        if resp and resp.has_model() and getattr(resp, "validate"):
+        if resp and resp.has_model() and getattr(resp, "validate", False):
             model = resp.find_model(response.status_code)
             if model:
                 try:
@@ -242,7 +233,7 @@ class FlaskBackend:
         return response
 
 
-def _parse_custom_url_converter(converter: str, app: Flask) -> Optional[Dict[str, Any]]:
+def _parse_custom_url_converter(converter: str, app: Flask) -> dict[str, Any] | None:
     """Attempt derive a schema from a custom URL converter."""
     try:
         converter_cls = app.url_map.converters[converter]

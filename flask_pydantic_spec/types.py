@@ -1,10 +1,10 @@
 import re
-from typing import Optional, Type, Iterable, Mapping, Any, Dict, NamedTuple, TypeVar, Union
+from collections.abc import Iterable, Mapping
+from typing import Any, NamedTuple, TypeVar
 
-from pydantic import BaseModel
-from pydantic import v1
+from pydantic import BaseModel, v1
 
-BaseModelUnion = Union[BaseModel, v1.BaseModel]
+BaseModelUnion = BaseModel | v1.BaseModel
 BaseModelT = TypeVar("BaseModelT", bound=BaseModelUnion)
 
 
@@ -16,11 +16,11 @@ class ResponseBase:
     def has_model(self) -> bool:
         raise NotImplementedError
 
-    def find_model(self, code: int) -> Optional[Type[BaseModelUnion]]:
+    def find_model(self, code: int) -> type[BaseModelUnion] | None:
         raise NotImplementedError
 
     @property
-    def models(self) -> Iterable[Type[BaseModelUnion]]:
+    def models(self) -> Iterable[type[BaseModelUnion]]:
         raise NotImplementedError
 
     def generate_spec(self) -> Mapping[str, Any]:
@@ -28,7 +28,7 @@ class ResponseBase:
 
 
 class ResponseModel(NamedTuple):
-    model: Type[BaseModelUnion]
+    model: type[BaseModelUnion]
     is_list: bool = False
 
 
@@ -48,7 +48,7 @@ class Response(ResponseBase):
             assert item in DEFAULT_CODE_DESC, "invalid HTTP status code"
             self.codes.append(item)
 
-        self.code_models: Dict[str, ResponseModel] = {}
+        self.code_models: dict[str, ResponseModel] = {}
         for key, value in kwargs.items():
             if key.lower() == "validate":
                 assert isinstance(value, bool)
@@ -57,14 +57,14 @@ class Response(ResponseBase):
                 assert key in DEFAULT_CODE_DESC, "invalid HTTP status code"
                 if value:
                     if self.is_list_type(value):
-                        assert issubclass(
-                            value.__args__[0], (BaseModel, v1.BaseModel)
-                        ), "invalid `pydantic.BaseModel`"
+                        assert issubclass(value.__args__[0], (BaseModel, v1.BaseModel)), (
+                            "invalid `pydantic.BaseModel`"
+                        )
                         self.code_models[key] = ResponseModel(value.__args__[0], True)
                     else:
-                        assert issubclass(
-                            value, (BaseModel, v1.BaseModel)
-                        ), "invalid `pydantic.BaseModel`"
+                        assert issubclass(value, (BaseModel, v1.BaseModel)), (
+                            "invalid `pydantic.BaseModel`"
+                        )
                         self.code_models[key] = ResponseModel(value, False)
                 else:
                     self.codes.append(key)
@@ -79,7 +79,7 @@ class Response(ResponseBase):
         """
         return True if self.code_models else False
 
-    def find_model(self, code: int) -> Optional[Type[BaseModelUnion]]:
+    def find_model(self, code: int) -> type[BaseModelUnion] | None:
         """
         :param code: ``r'\\d{3}'``
         """
@@ -89,19 +89,19 @@ class Response(ResponseBase):
         return None
 
     @property
-    def models(self) -> Iterable[Type[BaseModelUnion]]:
+    def models(self) -> Iterable[type[BaseModelUnion]]:
         """
         :returns:  dict_values -- all the models in this response
         """
         return [i.model for i in self.code_models.values()]
 
-    def generate_spec(self) -> Dict[str, Any]:
+    def generate_spec(self) -> dict[str, Any]:
         """
         generate the spec for responses
 
         :returns: JSON
         """
-        responses: Dict[str, Any] = {}
+        responses: dict[str, Any] = {}
         for code in self.codes:
             response_code = _parse_code(code)
             if response_code:
@@ -119,7 +119,7 @@ class Response(ResponseBase):
         return responses
 
     @staticmethod
-    def get_schema(model: Type[BaseModelUnion], is_list: bool = False) -> Mapping[str, Any]:
+    def get_schema(model: type[BaseModelUnion], is_list: bool = False) -> Mapping[str, Any]:
         from flask_pydantic_spec.utils import get_model_name
 
         ref_schema = {"$ref": f"#/components/schemas/{get_model_name(model)}"}
@@ -139,7 +139,7 @@ class FileResponse(ResponseBase):
         return False
 
     @property
-    def models(self) -> Iterable[Type[BaseModelUnion]]:
+    def models(self) -> Iterable[type[BaseModelUnion]]:
         return []
 
     def generate_spec(self) -> Mapping[str, Any]:
@@ -165,7 +165,7 @@ class RequestBase:
 class Request(RequestBase):
     def __init__(
         self,
-        model: Optional[Type[BaseModelUnion]] = None,
+        model: type[BaseModelUnion] | None = None,
         content_type: str = "application/json",
         encoding: str = "binary",
     ) -> None:
@@ -199,7 +199,7 @@ class Request(RequestBase):
 class MultipartFormRequest(RequestBase):
     def __init__(
         self,
-        model: Optional[Type[BaseModelUnion]] = None,
+        model: type[BaseModelUnion] | None = None,
         file_key: str = "file",
         encoding: str = "binary",
     ):
@@ -240,7 +240,7 @@ class MultipartFormRequest(RequestBase):
 HTTP_CODE = re.compile(r"^HTTP_(?P<code>\d{3})$")
 
 
-def _parse_code(http_code: str) -> Optional[str]:
+def _parse_code(http_code: str) -> str | None:
     """
     get the code of this HTTP status
 

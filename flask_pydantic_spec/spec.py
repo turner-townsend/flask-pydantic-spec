@@ -1,27 +1,28 @@
 from collections import defaultdict
+from collections.abc import Callable, Iterable, Mapping
 from copy import deepcopy
 from functools import wraps
-from typing import Mapping, Optional, Type, Union, Callable, Iterable, Any, Dict
 from operator import itemgetter
+from typing import Any
 
-from flask import Flask, Response as FlaskResponse, Blueprint, jsonify
+from flask import Blueprint, Flask, jsonify
+from flask import Response as FlaskResponse
 from flask.blueprints import BlueprintSetupState
 from inflection import camelize
 
-from . import Request
 from .config import Config
 from .flask_backend import FlaskBackend
 from .page import PAGES
-from .types import BaseModelUnion, RequestBase, ResponseBase
+from .types import BaseModelUnion, Request, RequestBase, ResponseBase
 from .utils import (
+    default_after_handler,
+    default_before_handler,
+    get_model_name,
     get_model_schema,
     parse_comments,
-    parse_request,
     parse_params,
+    parse_request,
     parse_resp,
-    default_before_handler,
-    default_after_handler,
-    get_model_name,
 )
 
 
@@ -50,9 +51,9 @@ class FlaskPydanticSpec:
     def __init__(
         self,
         backend_name: str = "base",
-        backend: Type[FlaskBackend] = FlaskBackend,
-        app: Optional[Flask] = None,
-        blueprint: Optional[Blueprint] = None,
+        backend: type[FlaskBackend] = FlaskBackend,
+        app: Flask | None = None,
+        blueprint: Blueprint | None = None,
         before: Callable = default_before_handler,
         after: Callable = default_after_handler,
         **kwargs: Any,
@@ -63,7 +64,7 @@ class FlaskPydanticSpec:
         self.backend_name = backend_name
         self.backend = backend(self)
         # init
-        self.models: Dict[str, Any] = {}
+        self.models: dict[str, Any] = {}
         if app:
             self.register(app)
         if blueprint:
@@ -71,7 +72,7 @@ class FlaskPydanticSpec:
 
     def register(
         self,
-        app_or_blueprint: Union[Flask, Blueprint],
+        app_or_blueprint: Flask | Blueprint,
         register_route: bool = True,
     ) -> None:
         """
@@ -91,7 +92,7 @@ class FlaskPydanticSpec:
         if register_route:
             self.register_spec_routes(app_or_blueprint)
 
-    def register_spec_routes(self, app_or_blueprint: Union[Flask, Blueprint]) -> None:
+    def register_spec_routes(self, app_or_blueprint: Flask | Blueprint) -> None:
         app_or_blueprint.add_url_rule(
             self.config.spec_url,
             "openapi",
@@ -139,16 +140,16 @@ class FlaskPydanticSpec:
 
     def validate(
         self,
-        query: Optional[Type[BaseModelUnion]] = None,
-        body: Optional[Union[RequestBase, Type[BaseModelUnion]]] = None,
-        headers: Optional[Type[BaseModelUnion]] = None,
-        cookies: Optional[Type[BaseModelUnion]] = None,
-        resp: Optional[ResponseBase] = None,
+        query: type[BaseModelUnion] | None = None,
+        body: RequestBase | type[BaseModelUnion] | None = None,
+        headers: type[BaseModelUnion] | None = None,
+        cookies: type[BaseModelUnion] | None = None,
+        resp: ResponseBase | None = None,
         tags: Iterable[str] = (),
         deprecated: bool = False,
-        before: Optional[Callable] = None,
-        after: Optional[Callable] = None,
-        extensions: Optional[Dict[str, Any]] = None,
+        before: Callable | None = None,
+        after: Callable | None = None,
+        extensions: dict[str, Any] | None = None,
     ) -> Callable:
         """
         - validate query, body, headers in request
@@ -188,7 +189,9 @@ class FlaskPydanticSpec:
 
             # register
             for name, model in zip(
-                ("query", "body", "headers", "cookies"), (query, body, headers, cookies)
+                ("query", "body", "headers", "cookies"),
+                (query, body, headers, cookies),
+                strict=True,
             ):
                 if model is not None:
                     if isinstance(model, RequestBase) and hasattr(model, "model"):
@@ -205,27 +208,26 @@ class FlaskPydanticSpec:
             for model in resp.models:
                 self._register_model(model)
 
-            setattr(validation, "resp", resp)
+            validation.resp = resp  # type: ignore[attr-defined]
 
             if tags:
-                setattr(validation, "tags", tags)
+                validation.tags = tags  # type: ignore[attr-defined]
 
             if deprecated:
-                setattr(validation, "deprecated", True)
+                validation.deprecated = True  # type: ignore[attr-defined]
 
             if extensions:
-                for key, value in extensions.items():
-                    if not key or not key.startswith("x-"):
-                        raise ValueError("Swagger vendor extensions must begin with 'x-'")
-                setattr(validation, "extensions", extensions)
+                if not all(key and key.startswith("x-") for key in extensions.keys()):
+                    raise ValueError("Swagger vendor extensions must begin with 'x-'")
+                validation.extensions = extensions  # type: ignore[attr-defined]
 
             # register decorator
-            setattr(validation, "_decorator", self)
+            validation._decorator = self  # type: ignore[attr-defined]
             return validation
 
         return decorate_validation
 
-    def _register_model(self, model: Type[BaseModelUnion]) -> None:
+    def _register_model(self, model: type[BaseModelUnion]) -> None:
         self.models[get_model_name(model)] = self._get_open_api_schema(get_model_schema(model))
 
     def _generate_spec(self) -> Mapping[str, Any]:
@@ -233,8 +235,8 @@ class FlaskPydanticSpec:
         generate OpenAPI spec according to routes and decorators
         """
         tag_lookup = {tag["name"]: tag for tag in self.config.TAGS}
-        routes: Dict[str, Any] = {}
-        tags: Dict[str, Any] = {}
+        routes: dict[str, Any] = {}
+        tags: dict[str, Any] = {}
 
         if self.app is None:
             raise RuntimeError("Flask app must be registered this instance to generate a spec")
@@ -292,7 +294,7 @@ class FlaskPydanticSpec:
         }
         return spec
 
-    def _validate_property(self, property: Mapping[str, Any]) -> Dict[str, Any]:
+    def _validate_property(self, property: Mapping[str, Any]) -> dict[str, Any]:
         allowed_fields = {
             "title",
             "multipleOf",
@@ -331,7 +333,7 @@ class FlaskPydanticSpec:
             "deprecated",
             "$ref",
         }
-        result: Dict[str, Any] = defaultdict(dict)
+        result: dict[str, Any] = defaultdict(dict)
 
         for key, value in property.items():
             for prop, val in value.items():
@@ -353,11 +355,11 @@ class FlaskPydanticSpec:
 
         return result
 
-    def _get_model_definitions(self) -> Dict[str, Any]:
+    def _get_model_definitions(self) -> dict[str, Any]:
         """
         handle nested models
         """
-        definitions: Dict[str, Any] = {}
+        definitions: dict[str, Any] = {}
         for model, schema in self.models.items():
             if model not in definitions.keys():
                 definitions[model] = deepcopy(schema)

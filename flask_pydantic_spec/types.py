@@ -4,7 +4,6 @@ from typing import Optional, Type, Iterable, Mapping, Any, Dict, NamedTuple, Typ
 from pydantic import BaseModel
 from pydantic import v1
 
-
 BaseModelUnion = Union[BaseModel, v1.BaseModel]
 BaseModelT = TypeVar("BaseModelT", bound=BaseModelUnion)
 

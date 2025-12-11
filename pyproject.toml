@@ -45,6 +45,10 @@ dev = [
     "requests>=2.24.0,<3",
     "mypy==1.10.0",
     "ruff>=0.14.0",
+    "rust-just>=1.45.0",
+]
+docs = [
+    "sphinx>=5.0.2,<8",
 ]
 
 [tool.ruff]

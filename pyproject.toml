@@ -41,16 +41,37 @@ packages = ["flask_pydantic_spec"]
 dev = [
     "openapi-spec-validator==0.7.1",
     "pytest>=8.3.5,<9",
-    "flake8==7.1.1",
     "flask>=2.0.2,<3",
     "requests>=2.24.0,<3",
-    "black>=20.8b1",
     "mypy==1.10.0",
+    "ruff>=0.14.0",
 ]
 
-[tool.black]
+[tool.ruff]
 line-length = 100
-target-version = ['py310', 'py311', 'py312', 'py313']
+target-version = "py310"
+exclude = [
+    ".git",
+    "__pycache__",
+    "docs",
+    "dist",
+    ".venv",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "C90", # mccabe
+]
+ignore = [
+    "E203", # whitespace before ':' (not needed for ruff, but kept for compatibility/habit)
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 18
 
 [tool.mypy]
 ignore_missing_imports = true

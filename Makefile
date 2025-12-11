@@ -1,10 +1,10 @@
-check: style test
+check: lint test
 
 install:
-	pip install -e .
+	uv sync
 
 test:
-	pytest tests -vv
+	uv run pytest tests -vv
 
 doc:
 	cd docs && make html
@@ -15,21 +15,26 @@ clean:
 	find . -name '__pycache__' -exec rm -rf {} +
 
 build: clean
-	python setup.py sdist bdist_wheel
+	uv build
 
 publish: build
-	twine upload dist/*
+	uv publish
 
-style:
+lint-flake8:
 	# stop the build if there are Python syntax errors or undefined names
-	flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+	uv run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 	# exit-zero treats all errors as warnings
-	flake8 . --count --exit-zero --statistics
+	uv run flake8 . --count --exit-zero --statistics
 
-lint:
-	mypy flask_pydantic_spec
+lint-mypy:
+	uv run mypy flask_pydantic_spec
+
+lint-black:
+	uv run black --check tests flask_pydantic_spec
+
+lint: lint-mypy lint-black lint-flake8
 
 format:
-	black tests flask_pydantic_spec
+	uv run black tests flask_pydantic_spec
 
 .PHONY: test doc

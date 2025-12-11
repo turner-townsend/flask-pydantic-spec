@@ -1,3 +1,53 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "flask_pydantic_spec"
+version = "0.8.7"
+description = "generate OpenAPI document and validate request & response with Python annotations."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+    { name = "Chris Gearing", email = "chris.gearing@turntown.digital" },
+    { name = "Simon Hayward" },
+    { name = "Rob Young" },
+    { name = "Donald Fleming" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "pydantic>=2",
+    "inflection>=0.5.0,<1",
+]
+
+[project.urls]
+Homepage = "https://github.com/turner-townsend/flask-pydantic-spec"
+
+[project.optional-dependencies]
+flask = ["flask"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["flask_pydantic_spec"]
+
+[dependency-groups]
+dev = [
+    "openapi-spec-validator==0.7.1",
+    "pytest>=8.3.5,<9",
+    "flake8==7.1.1",
+    "flask>=2.0.2,<3",
+    "requests>=2.24.0,<3",
+    "black>=20.8b1",
+    "mypy==1.10.0",
+]
 
 [tool.black]
 line-length = 100

@@ -1,6 +1,7 @@
-from enum import Enum
 import logging
-from typing import Set, Optional, Dict, Any, Mapping, List
+from collections.abc import Mapping
+from enum import Enum
+from typing import Any
 
 
 class OperationIdType(Enum):
@@ -20,22 +21,22 @@ class Config:
     :ivar OPERATION_ID_TYPE: type of operation ID to use in OpenAPI spec
     """
 
-    def __init__(self, **kwargs: Dict[str, Any]) -> None:
+    def __init__(self, **kwargs: dict[str, Any]) -> None:
         self.PATH: str = "apidoc"
         self.FILENAME: str = "openapi.json"
         self.OPENAPI_VERSION: str = "3.1.0"
         self.UI: str = "redoc"
-        self._SUPPORT_UI: Set[str] = {"redoc", "swagger"}
-        self._SUPPORT_MODE: Set[str] = {"normal", "strict", "greedy"}
+        self._SUPPORT_UI: set[str] = {"redoc", "swagger"}
+        self._SUPPORT_MODE: set[str] = {"normal", "strict", "greedy"}
         self.VALIDATION_ERROR_CODE: int = 422
         self.OPERATION_ID_TYPE: OperationIdType = OperationIdType.function_name
 
         self.TITLE: str = "Service API Document"
         self.VERSION: str = "0.1"
-        self.DOMAIN: Optional[str] = None
+        self.DOMAIN: str | None = None
 
-        self.INFO: Dict[str, str] = {}
-        self.TAGS: List[Mapping[str, str]] = []
+        self.INFO: dict[str, str] = {}
+        self.TAGS: list[Mapping[str, str]] = []
 
         self.logger = logging.getLogger(__name__)
 
@@ -46,10 +47,10 @@ class Config:
         return f"/{self.PATH}/{self.FILENAME}"
 
     def __repr__(self) -> str:
-        display = "\n{:=^80}\n".format(self.__class__.__name__)
+        display = f"\n{self.__class__.__name__:=^80}\n"
         for k, v in vars(self).items():
             if not k.startswith("__"):
-                display += "| {:<30} {}\n".format(k, v)
+                display += f"| {k:<30} {v}\n"
 
         return display + "=" * 80
 

@@ -2,10 +2,10 @@ import pytest
 
 from flask_pydantic_spec.types import (
     DEFAULT_CODE_DESC,
-    Response,
     FileResponse,
-    Request,
     MultipartFormRequest,
+    Request,
+    Response,
 )
 
 from .common import DemoModel, DemoModelV1

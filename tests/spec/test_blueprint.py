@@ -1,18 +1,17 @@
-from enum import Enum
 import re
-from typing import Optional, List, Any, Mapping
+from collections.abc import Mapping
+from enum import Enum
+from typing import Any
 
 import pytest
-from flask import Flask, Blueprint
+from flask import Blueprint, Flask
 from openapi_spec_validator import OpenAPIV31SpecValidator
-from pydantic import BaseModel, StrictFloat, Field, RootModel
+from pydantic import BaseModel, Field, RootModel, StrictFloat
 
-from flask_pydantic_spec import Response
-from flask_pydantic_spec.types import FileResponse, Request, MultipartFormRequest
-from flask_pydantic_spec import FlaskPydanticSpec
+from flask_pydantic_spec import FlaskPydanticSpec, Response
 from flask_pydantic_spec.config import Config
+from flask_pydantic_spec.types import FileResponse, MultipartFormRequest, Request
 from flask_pydantic_spec.utils import get_model_name
-
 from tests.common import ExampleConverter, UnknownConverter
 
 
@@ -29,10 +28,10 @@ class TypeEnum(str, Enum):
 
 class ExampleQuery(BaseModel):
     query: str
-    type: Optional[TypeEnum] = None
+    type: TypeEnum | None = None
 
 
-ExampleNestedList = RootModel[List[ExampleModel]]
+ExampleNestedList = RootModel[list[ExampleModel]]
 
 
 class ExampleNestedModel(BaseModel):
@@ -40,7 +39,7 @@ class ExampleNestedModel(BaseModel):
 
 
 class ExampleDeepNestedModel(BaseModel):
-    data: List["ExampleModel"]
+    data: list["ExampleModel"]
 
 
 @pytest.fixture
@@ -59,7 +58,7 @@ def blueprint_name():
 
 
 @pytest.fixture
-def empty_blueprint(blueprint_name):
+def empty_blueprint(blueprint_name: str):
     return Blueprint(blueprint_name, __name__, url_prefix="/blueprint")
 
 
@@ -88,7 +87,7 @@ def test_spectree_init():
     assert spec.config.PATH == "docs"
 
 
-def test_register(app_name, empty_app, empty_blueprint):
+def test_register(app_name: str, empty_app: Flask, empty_blueprint: Blueprint):
     api = FlaskPydanticSpec(app_name)
     api.register(empty_app)
     blueprint_api = FlaskPydanticSpec("blueprint_api")
@@ -97,7 +96,7 @@ def test_register(app_name, empty_app, empty_blueprint):
     empty_app.register_blueprint(empty_blueprint)
 
 
-def test_spec_generate(app_name, empty_app, empty_blueprint):
+def test_spec_generate(app_name: str, empty_app: Flask, empty_blueprint: Blueprint):
     api = FlaskPydanticSpec(app_name)
     api.register(empty_app)
 
@@ -140,14 +139,14 @@ def app(api: FlaskPydanticSpec, empty_blueprint: Blueprint, bp_api: FlaskPydanti
     @empty_blueprint.route("/lone", methods=["PATCH"])
     @bp_api.validate(
         body=Request(ExampleModel),
-        resp=Response(HTTP_200=List[ExampleModel], HTTP_400=ExampleNestedModel),
+        resp=Response(HTTP_200=list[ExampleModel], HTTP_400=ExampleNestedModel),
         tags=["lone"],
     )
     def lone_patch():
         pass
 
     @empty_blueprint.route("/query", methods=["GET"])
-    @bp_api.validate(query=ExampleQuery, resp=Response(HTTP_200=List[ExampleModel]))
+    @bp_api.validate(query=ExampleQuery, resp=Response(HTTP_200=list[ExampleModel]))
     def get_query():
         pass
 

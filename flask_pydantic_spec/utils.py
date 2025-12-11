@@ -2,33 +2,25 @@ import inspect
 import json
 import logging
 import re
+from collections.abc import Callable, Iterable, Mapping
 from json import JSONDecodeError
-
 from typing import (
-    Callable,
-    Mapping,
     Any,
-    Tuple,
-    Optional,
-    List,
-    Dict,
-    Iterable,
-    Type,
 )
 
-from werkzeug.datastructures import MultiDict
 from pydantic import BaseModel, v1
+from werkzeug.datastructures import MultiDict
 from werkzeug.routing import Rule
 
 from .constants import OPENAPI_SCHEMA_TEMPLATE
-from .types import BaseModelT, BaseModelUnion, Response, RequestBase, Request
+from .types import BaseModelT, BaseModelUnion, Request, RequestBase, Response
 
 logger = logging.getLogger(__name__)
 
 VALID_NAME_REGEX = re.compile(r"[^a-zA-Z0-9._-]")
 
 
-def get_model_name(model: Type[BaseModelUnion]) -> str:
+def get_model_name(model: type[BaseModelUnion]) -> str:
     """Gets the name of a model name as an OpenAPI 3.1 compatible name
 
     Replaces any non standard characters in a string with `_`
@@ -39,7 +31,7 @@ def get_model_name(model: Type[BaseModelUnion]) -> str:
     return VALID_NAME_REGEX.sub("_", model.__name__)
 
 
-def get_model_schema(model: Type[BaseModelUnion]) -> Dict[str, Any]:
+def get_model_schema(model: type[BaseModelUnion]) -> dict[str, Any]:
     if issubclass(model, BaseModel):
         return model.model_json_schema(ref_template=OPENAPI_SCHEMA_TEMPLATE)
     elif issubclass(model, v1.BaseModel):
@@ -53,7 +45,7 @@ def get_model_schema(model: Type[BaseModelUnion]) -> Dict[str, Any]:
         raise ValueError(f"Unsupported model type: {type(model)}")
 
 
-def load_model_schema(model: Type[BaseModelT], data: Any) -> BaseModelT:
+def load_model_schema(model: type[BaseModelT], data: Any) -> BaseModelT:
     if issubclass(model, BaseModel):
         return model.model_validate(data)  # type: ignore[return-value]
     elif issubclass(model, v1.BaseModel):
@@ -62,7 +54,7 @@ def load_model_schema(model: Type[BaseModelT], data: Any) -> BaseModelT:
         raise ValueError(f"Unsupported model type: {type(model)}")
 
 
-def parse_comments(func: Callable) -> Tuple[Optional[str], Optional[str]]:
+def parse_comments(func: Callable) -> tuple[str | None, str | None]:
     """
     parse function comments
 
@@ -83,7 +75,7 @@ def parse_request(func: Callable) -> Mapping[str, Any]:
     Generate spec from body parameter on the view function validation decorator
     """
     if hasattr(func, "body"):
-        request_body = getattr(func, "body")
+        request_body = func.body
         if isinstance(request_body, RequestBase):
             result: Mapping[str, Any] = request_body.generate_spec()
         elif issubclass(request_body, (BaseModel, v1.BaseModel)):
@@ -96,14 +88,14 @@ def parse_request(func: Callable) -> Mapping[str, Any]:
 
 def parse_params(
     func: Callable,
-    params: List[Mapping[str, Any]],
+    params: list[dict[str, Any]],
     models: Mapping[str, Any],
-) -> List[Mapping[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     get spec for (query, headers, cookies)
     """
     if hasattr(func, "query"):
-        model_name = getattr(func, "query").__name__
+        model_name = func.query.__name__
         query = models.get(model_name)
         if query is not None:
             for name, schema in query["properties"].items():
@@ -117,7 +109,7 @@ def parse_params(
                 )
 
     if hasattr(func, "headers"):
-        model_name = getattr(func, "headers").__name__
+        model_name = func.headers.__name__
         headers = models.get(model_name)
         if headers is not None:
             for name, schema in headers["properties"].items():
@@ -131,7 +123,7 @@ def parse_params(
                 )
 
     if hasattr(func, "cookies"):
-        model_name = getattr(func, "cookies").__name__
+        model_name = func.cookies.__name__
         cookies = models.get(model_name)
         if cookies is not None:
             for name, schema in cookies["properties"].items():
@@ -155,9 +147,9 @@ def parse_resp(func: Callable, code: int) -> Mapping[str, Mapping[str, Any]]:
     a ``Validation Error`` will be append to the response spec. Since
     this may be triggered in the validation step.
     """
-    responses: Dict[str, Any] = {}
+    responses: dict[str, Any] = {}
     if hasattr(func, "resp"):
-        response = getattr(func, "resp")
+        response = func.resp
         if response:
             responses = response.generate_spec()
 
@@ -174,7 +166,7 @@ def has_model(func: Callable) -> bool:
     if any(hasattr(func, x) for x in ("query", "json", "headers")):
         return True
 
-    if hasattr(func, "resp") and getattr(func, "resp").has_model():
+    if hasattr(func, "resp") and func.resp.has_model():
         return True
 
     return False
@@ -224,7 +216,7 @@ def default_after_handler(
         )
 
 
-def parse_multi_dict(input: MultiDict) -> Dict[str, Any]:
+def parse_multi_dict(input: MultiDict) -> dict[str, Any]:
     result = {}
     for key, value in input.to_dict(flat=False).items():
         if len(value) == 1:
@@ -254,7 +246,7 @@ RE_PARSE_RULE = re.compile(
 )
 
 
-def parse_rule(rule: Rule) -> Iterable[Tuple[Optional[str], Optional[str], str]]:
+def parse_rule(rule: Rule) -> Iterable[tuple[str | None, str | None, str]]:
     """
     Parse a rule and return it as generator. Each iteration yields tuples in the form
     ``(converter, arguments, variable)``.

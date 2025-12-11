@@ -60,10 +60,13 @@ exclude = [
 
 [tool.ruff.lint]
 select = [
+    "B", # flake8-bugbear
     "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
     "F",  # pyflakes
     "I",  # isort
+    "TC", # typechecking
+    "UP", # pyupgrade
+    "W",  # pycodestyle warnings
     "C90", # mccabe
 ]
 ignore = [

@@ -25,10 +25,14 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install dependencies
+        run: |
+          uv sync
+
       - name: Lint
         run: |
-          make lint
+          uv run just lint
 
       - name: Test
         run: |
-          make test
+          uv run just test

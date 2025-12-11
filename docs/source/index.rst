@@ -4,10 +4,7 @@
    contain the root `toctree` directive.
 
 Welcome to Flask-Pydantic-Spec's documentation!
-====================================
-
-|GitHub Actions| |pypi| |versions| |Language grade: Python|
-|Documentation Status|
+===============================================
 
 Yet another library to generate OpenAPI document and validate request &
 response with Python annotations.

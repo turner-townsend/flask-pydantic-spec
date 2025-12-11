@@ -20,21 +20,17 @@ build: clean
 publish: build
 	uv publish
 
-lint-flake8:
-	# stop the build if there are Python syntax errors or undefined names
-	uv run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-	# exit-zero treats all errors as warnings
-	uv run flake8 . --count --exit-zero --statistics
+lint-ruff:
+	uv run ruff check .
+	uv run ruff format --check .
 
 lint-mypy:
 	uv run mypy flask_pydantic_spec
 
-lint-black:
-	uv run black --check tests flask_pydantic_spec
-
-lint: lint-mypy lint-black lint-flake8
+lint: lint-mypy lint-ruff
 
 format:
-	uv run black tests flask_pydantic_spec
+	uv run ruff format .
+	uv run ruff check --fix .
 
 .PHONY: test doc
